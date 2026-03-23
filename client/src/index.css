@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+body {
+  color: #dae2fd;
+  background-color: #0b1326;
+}
+
+@theme {
+  /* Primary */
+  --color-primary:            #c0c1ff;
+  --color-primary-container:  #8083ff;
+  --color-on-primary:         #1000a9;
+  --color-primary-fixed:      #e1e0ff;
+  --color-inverse-primary:    #494bd6;
+
+  /* Secondary */
+  --color-secondary:                #b9c8de;
+  --color-secondary-container:      #39485a;
+  --color-on-secondary-container:   #a7b6cc;
+  --color-secondary-fixed:          #d4e4fa;
+
+  /* Tertiary */
+  --color-tertiary:           #b7c8e1;
+  --color-tertiary-container: #68788f;
+  --color-on-tertiary:        #213145;
+
+  /* Surface / Background */
+  --color-background:                  #0b1326;
+  --color-surface:                     #0b1326;
+  --color-surface-container:           #171f33;
+  --color-surface-container-high:      #222a3d;
+  --color-surface-container-highest:   #2d3449;
+  --color-surface-container-low:       #131b2e;
+  --color-surface-container-lowest:    #060e20;
+  --color-surface-bright:              #31394d;
+
+  /* Text / On-Surface */
+  --color-on-surface:         #dae2fd;
+  --color-on-surface-variant: #c7c4d7;
+
+  /* Outline / Border */
+  --color-outline:         #908fa0;
+  --color-outline-variant: #464554;
+
+  /* Error */
+  --color-error:           #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error:        #690005;
+}

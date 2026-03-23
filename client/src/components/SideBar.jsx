@@ -1,0 +1,126 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { LayoutDashboard, FileText, FilePlus, User, Settings, LogOut, Menu, X } from "lucide-react";
+import useAuthStore from "../stores/authStore";
+
+export default function SideBar({ children, page }) {
+
+  const { logout } = useAuthStore();
+
+  const navigate = useNavigate();
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) setIsOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return (
+    <div className="">
+      {/* Backdrop — mobile only */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity duration-300"
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`fixed flex flex-col justify-between top-0 bottom-0 w-[260px] bg-surface-container px-5 py-5 z-40 transition-transform duration-300 ease-in-out
+          md:translate-x-0
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        {/* top section */}
+        <div>
+          <div className="flex items-center justify-between py-4 mb-5">
+            <div className="flex flex-col gap-1">
+              <h1 className="text-2xl font-medium">BlogCMS</h1>
+              <span className="text-on-surface-variant">Admin Panel</span>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="md:hidden text-on-surface-variant hover:text-white transition-colors p-1 rounded-md"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span 
+                onClick={() => {navigate("/dashboard")}}
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full 
+                ${page === "dashboard" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
+            >
+              <LayoutDashboard size={20} className="text-white shrink-0" />
+              Dashboard
+            </span>
+            <span 
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full 
+                ${page === "posts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
+            >
+              <FileText size={20} className="text-white shrink-0" />
+              Posts
+            </span>
+            <span 
+                onClick={() => {navigate("/newposts")}}
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full 
+                ${page === "newposts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
+            >
+              <FilePlus size={20} className="text-white shrink-0" />
+              New Posts
+            </span>
+          </div>
+        </div>
+
+        {/* bottom section */}
+        <div className="border-t-[0.5px]">
+          <div className="flex flex-col gap-1 mt-7">
+            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-[230px]">
+              <User size={20} className="text-white shrink-0" />
+              Profile
+            </span>
+            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-[230px]">
+              <Settings size={20} className="text-white shrink-0" />
+              Settings
+            </span>
+          </div>
+
+          {/* Profile card */}
+          <div className="flex items-center gap-3 pt-4 px-3 mt-7">
+            <img className="w-10 h-10 rounded-full object-cover shrink-0 bg-surface-variant" />
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-sm font-medium text-on-surface truncate">John Doe</span>
+              <span className="text-xs text-on-surface-variant truncate">Administrator</span>
+            </div>
+            <button 
+                onClick={logout}
+                className="text-on-surface-variant hover:text-white transition-colors shrink-0 ml-auto"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Hamburger button — mobile only */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-5 left-5 z-30 p-2 rounded-lg bg-surface-container text-on-surface-variant hover:text-white transition-colors md:hidden"
+        >
+          <Menu size={20} />
+        </button>
+      )}
+
+      {/* Children container */}
+      <div className="transition-all duration-300 ease-in-out md:pl-[260px] mx-5 my-5">
+        {children}
+      </div>
+    </div>
+  );
+}
