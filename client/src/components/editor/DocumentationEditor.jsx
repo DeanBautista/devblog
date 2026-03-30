@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import DocumentationToolbar from "./DocumentationToolbar";
 import { collectHeadingMetadata } from "./editorParsing";
-import { DOCUMENTATION_TYPES, getDocumentationTools } from "./documentationToolsets";
+import { getDocumentationTools } from "./documentationToolsets";
 
 const TOOL_ACTIONS = {
     bold: {
@@ -40,57 +40,13 @@ const TOOL_ACTIONS = {
         kind: "block",
         template: "\n![Alt text](https://images.example.com/image.png)\n",
     },
-    quote: {
-        kind: "linePrefix",
-        prefix: "> ",
-    },
     bulletList: {
         kind: "linePrefix",
         prefix: "- ",
     },
-    orderedList: {
-        kind: "linePrefix",
-        prefix: "1. ",
-    },
     divider: {
         kind: "block",
         template: "\n---\n",
-    },
-    stepHeading: {
-        kind: "block",
-        template: "\n## Step 1: Describe the objective\n",
-    },
-    checklist: {
-        kind: "block",
-        template: "\n- [ ] First task\n- [ ] Second task\n",
-    },
-    infoCallout: {
-        kind: "block",
-        template: "\n> [!NOTE]\n> Add additional context here.\n",
-    },
-    warningCallout: {
-        kind: "block",
-        template: "\n> [!WARNING]\n> Highlight important caution details.\n",
-    },
-    endpointTemplate: {
-        kind: "block",
-        template: "\n### GET /v1/resource\nShort endpoint description.\n",
-    },
-    parametersTable: {
-        kind: "block",
-        template: "\n| Parameter | Type | Required | Description |\n| --- | --- | --- | --- |\n| id | string | yes | Resource identifier |\n",
-    },
-    requestExample: {
-        kind: "block",
-        template: "\n#### Request Example\n```http\nGET /v1/resource HTTP/1.1\nAuthorization: Bearer <token>\n```\n",
-    },
-    responseExample: {
-        kind: "block",
-        template: "\n#### Response Example\n```json\n{\n  \"id\": \"123\",\n  \"name\": \"Sample\"\n}\n```\n",
-    },
-    deprecationNote: {
-        kind: "block",
-        template: "\n> [!WARNING]\n> This endpoint is deprecated and will be removed in a future release.\n",
     },
 };
 
@@ -127,29 +83,52 @@ function insertAtSelection({
 function prefixCurrentLine({
     value,
     selectionStart,
+    selectionEnd,
     prefix,
+    toolId,
 }) {
     const beforeCursor = value.slice(0, selectionStart);
     const lineStart = beforeCursor.lastIndexOf("\n") + 1;
-    const alreadyPrefixed = value.slice(lineStart, lineStart + prefix.length) === prefix;
-    const snippet = alreadyPrefixed ? "" : prefix;
+    const lineEndIndex = value.indexOf("\n", lineStart);
+    const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+    const line = value.slice(lineStart, lineEnd);
+    const leadingWhitespaceMatch = line.match(/^(\s*)(.*)$/);
+    const leadingWhitespace = leadingWhitespaceMatch?.[1] ?? "";
+    const lineContent = leadingWhitespaceMatch?.[2] ?? line;
+    const contentStart = lineStart + leadingWhitespace.length;
+    let insertionIndex = contentStart;
+    let snippet = prefix;
+
+    if (toolId === "heading") {
+        const quotePrefixMatch = lineContent.match(/^(>\s?)(.*)$/);
+        if (quotePrefixMatch) {
+            insertionIndex = contentStart + quotePrefixMatch[1].length;
+            const quotedContent = quotePrefixMatch[2];
+            snippet = /^#{1,6}\s+/.test(quotedContent) ? "" : "# ";
+        } else {
+            snippet = /^#{1,6}\s+/.test(lineContent) ? "" : "# ";
+        }
+    } else {
+        snippet = lineContent.startsWith(prefix) ? "" : prefix;
+    }
+
+    const selectionStartShift = snippet && insertionIndex <= selectionStart ? snippet.length : 0;
+    const selectionEndShift = snippet && insertionIndex <= selectionEnd ? snippet.length : 0;
 
     return {
-        nextValue: `${value.slice(0, lineStart)}${snippet}${value.slice(lineStart)}`,
-        nextSelectionStart: selectionStart + snippet.length,
-        nextSelectionEnd: selectionStart + snippet.length,
+        nextValue: `${value.slice(0, insertionIndex)}${snippet}${value.slice(insertionIndex)}`,
+        nextSelectionStart: selectionStart + selectionStartShift,
+        nextSelectionEnd: selectionEnd + selectionEndShift,
     };
 }
 
 export default function DocumentationEditor({
-    documentationType,
-    onChangeDocumentationType,
     value,
     onChangeValue,
 }) {
     const textareaRef = useRef(null);
 
-    const tools = useMemo(() => getDocumentationTools(documentationType), [documentationType]);
+    const tools = useMemo(() => getDocumentationTools(), []);
     const headings = useMemo(() => collectHeadingMetadata(value), [value]);
 
     const applyTool = (toolId) => {
@@ -185,7 +164,9 @@ export default function DocumentationEditor({
             result = prefixCurrentLine({
                 value,
                 selectionStart,
+                selectionEnd,
                 prefix: action.prefix,
+                toolId,
             });
         }
 
@@ -201,29 +182,10 @@ export default function DocumentationEditor({
 
     return (
         <section className="mt-8 md:mt-10 rounded-2xl bg-surface-container overflow-hidden border border-outline-variant/30">
-            <div className="px-3 pt-3 pb-0 md:px-4 md:pt-4">
-                <label htmlFor="documentation-type" className="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">
-                    Documentation Type
-                </label>
-                <select
-                    id="documentation-type"
-                    className="mt-2 w-full md:max-w-[320px] bg-surface-container-high border border-outline-variant/40 rounded-lg px-3 py-2 text-sm outline-none"
-                    value={documentationType}
-                    onChange={(event) => onChangeDocumentationType(event.target.value)}
-                >
-                    {DOCUMENTATION_TYPES.map((docType) => (
-                        <option key={docType.id} value={docType.id}>
-                            {docType.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
             <DocumentationToolbar tools={tools} onSelectTool={applyTool} />
 
             <div className="px-3 py-3 md:px-4 md:py-4">
                 <div className="mb-2 flex items-center justify-between gap-2 text-xs text-secondary">
-                    <span>Use `#` to define a section title. Example: `# I Love Science`</span>
                     <span className="shrink-0">{headings.length} heading{headings.length === 1 ? "" : "s"}</span>
                 </div>
                 <textarea
