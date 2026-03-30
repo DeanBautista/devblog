@@ -4,6 +4,7 @@ import { CalendarIcon, ClockIcon } from "../../assets/svgs/Icons";
 import { EDITOR_VIEWS } from "../../components/document_renderer/postEditorConstants";
 import DocumentRenderer from "../../components/document_renderer/DocumentRenderer";
 import useAuthStore from "../../stores/authStore";
+import api from "../../lib/axios";
 
 export default function PostEditor() {
 
@@ -21,6 +22,11 @@ export default function PostEditor() {
     const [isExcerptModalOpen, setIsExcerptModalOpen] = useState(false);
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isConfirmPublishModalOpen, setIsConfirmPublishModalOpen] = useState(false);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [validationErrors, setValidationErrors] = useState([]);
 
     const hasPostTitle = postTitle.trim().length > 0;
@@ -55,12 +61,45 @@ export default function PostEditor() {
         setPreview(URL.createObjectURL(file));
     };
 
+    const normalizeSlug = (value) => {
+        return value
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-+|-+$/g, "");
+    };
+
+    const getResolvedSlug = () => {
+        return normalizeSlug(postSlug) || normalizeSlug(postTitle);
+    };
+
+    const resetFormState = () => {
+        setPostTitle("");
+        setPostSlug("");
+        setPostExcerpt("");
+        setEditorContent("");
+        setReadTimeMinutes("12");
+        setPreview(null);
+        setEditorView(EDITOR_VIEWS.WRITE);
+        setValidationErrors([]);
+        setIsExcerptModalOpen(false);
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     const handlePublish = () => {
+        if (isSubmitting) return;
+
         const errors = [];
         if (!postTitle.trim()) errors.push("Post title");
         if (!postExcerpt.trim()) errors.push("Post excerpt");
         if (!normalizedReadTimeMinutes || normalizedReadTimeMinutes === "0") errors.push("Read time");
         if (!editorContent.trim()) errors.push("Main content");
+        if (!getResolvedSlug()) errors.push("URL slug");
 
         if (errors.length > 0) {
             setValidationErrors(errors);
@@ -68,12 +107,53 @@ export default function PostEditor() {
             return;
         }
 
+        setSubmitError("");
         setIsConfirmPublishModalOpen(true);
     };
 
-    const handleConfirmPublish = () => {
+    const handleConfirmPublish = async () => {
+        if (isSubmitting) return;
+
+        const resolvedSlug = getResolvedSlug();
+
+        if (!resolvedSlug) {
+            setIsConfirmPublishModalOpen(false);
+            setValidationErrors(["URL slug"]);
+            setIsValidationModalOpen(true);
+            return;
+        }
+
         setIsConfirmPublishModalOpen(false);
-        // TODO: actual publish logic here
+
+        try {
+            setIsSubmitting(true);
+            setSubmitError("");
+
+            const payload = {
+                title: postTitle.trim(),
+                slug: resolvedSlug,
+                excerpt: postExcerpt.trim(),
+                content: editorContent.trim(),
+                reading_time: Number.parseInt(normalizedReadTimeMinutes, 10),
+                cover_image: null,
+            };
+
+            const response = await api.post("/api/posts/submitpost", payload);
+
+            resetFormState();
+            setSuccessMessage(response.data?.message || "Post published successfully.");
+            setIsSuccessModalOpen(true);
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                "Unable to publish post right now. Please try again.";
+
+            setSubmitError(message);
+            setIsErrorModalOpen(true);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleReadTimeChange = (event) => {
@@ -120,12 +200,19 @@ export default function PostEditor() {
 
                 {editorView === EDITOR_VIEWS.WRITE && (
                     <div className="w-full flex justify-end gap-4">
-                        <button className="px-5 py-2 rounded-full border-1">Draft</button>
+                        <button
+                            type="button"
+                            className="px-5 py-2 rounded-full border"
+                            disabled={isSubmitting}
+                        >
+                            Draft
+                        </button>
                         <button
                             onClick={handlePublish}
-                            className="text-black font-medium px-5 py-2 rounded-full bg-primary-fixed"
+                            disabled={isSubmitting}
+                            className={`text-black font-medium px-5 py-2 rounded-full bg-primary-fixed ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
                         >
-                            Publish
+                            {isSubmitting ? "Publishing..." : "Publish"}
                         </button>
                     </div>
                 )}
@@ -193,7 +280,7 @@ export default function PostEditor() {
                                                 type="text"
                                                 inputMode="numeric"
                                                 pattern="[0-9]*"
-                                                className="w-10 bg-transparent outline-none text-sm max-w-[15px] mr-1"
+                                                className="w-10 bg-transparent outline-none text-sm max-w-3.75 mr-1"
                                                 value={readTimeMinutes}
                                                 onChange={handleReadTimeChange}
                                                 aria-label="Minutes to read"
@@ -227,7 +314,7 @@ export default function PostEditor() {
                                         <>
                                             <img
                                                 src={activeCoverPreview}
-                                                className="w-full h-56 md:h-80 lg:h-[420px] object-cover rounded-xl"
+                                                className="w-full h-56 md:h-80 lg:h-105 object-cover rounded-xl"
                                                 alt="Cover preview"
                                             />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
@@ -259,17 +346,17 @@ export default function PostEditor() {
                         ) : (
                             <article className="mt-10 flex flex-col">
                                 {activeCoverPreview ? (
-                                    <div className="w-full h-56 md:h-80 lg:h-[420px] rounded-2xl overflow-hidden bg-on-tertiary">
-                                        <img src={activeCoverPreview} className="w-full h-full min-h-[350px] max-h-[500px] object-cover" alt="Cover preview" />
+                                    <div className="w-full h-56 md:h-80 lg:h-105 rounded-2xl overflow-hidden bg-on-tertiary">
+                                        <img src={activeCoverPreview} className="w-full h-full min-h-87.5 max-h-125 object-cover" alt="Cover preview" />
                                     </div>
                                 ) : (
-                                    <div className="w-full h-56 md:h-80 lg:h-[420px] rounded-2xl bg-on-tertiary flex items-center justify-center text-secondary text-sm">
+                                    <div className="w-full h-56 md:h-80 lg:h-105 rounded-2xl bg-on-tertiary flex items-center justify-center text-secondary text-sm">
                                         No cover image selected
                                     </div>
                                 )}
 
                                 <div className="mt-8 md:mt-10 flex flex-col gap-4">
-                                    <h1 className="text-4xl md:text-5xl font-bold leading-tight break-words">
+                                    <h1 className="text-4xl md:text-5xl font-bold leading-tight wrap-break-word">
                                         {hasPostTitle ? postTitle : "Untitled Post"}
                                     </h1>
 
@@ -435,16 +522,90 @@ export default function PostEditor() {
                             <button
                                 type="button"
                                 className="rounded-full border border-outline-variant/40 px-5 py-2 text-sm text-on-surface transition-colors hover:bg-surface-container"
+                                disabled={isSubmitting}
                                 onClick={() => setIsConfirmPublishModalOpen(false)}
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
-                                className="rounded-full bg-primary-fixed px-5 py-2 text-sm font-medium text-black transition-opacity hover:opacity-80"
+                                disabled={isSubmitting}
+                                className={`rounded-full bg-primary-fixed px-5 py-2 text-sm font-medium text-black transition-opacity hover:opacity-80 ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
                                 onClick={handleConfirmPublish}
                             >
-                                Yes, publish
+                                {isSubmitting ? "Publishing..." : "Yes, publish"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
+            {isSuccessModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4"
+                    onClick={() => setIsSuccessModalOpen(false)}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl border border-outline-variant/40 bg-surface px-5 py-5 shadow-2xl sm:px-6 sm:py-6"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold">Post published</h2>
+                                <p className="mt-1 text-sm text-secondary">{successMessage}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                type="button"
+                                className="rounded-full bg-primary-fixed px-5 py-2 text-sm font-medium text-black transition-opacity hover:opacity-80"
+                                onClick={() => setIsSuccessModalOpen(false)}
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Publish Error Modal */}
+            {isErrorModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4"
+                    onClick={() => setIsErrorModalOpen(false)}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl border border-outline-variant/40 bg-surface px-5 py-5 shadow-2xl sm:px-6 sm:py-6"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-error/10">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-error">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold">Publish failed</h2>
+                                <p className="mt-1 text-sm text-secondary">{submitError}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                type="button"
+                                className="rounded-full bg-primary-fixed px-5 py-2 text-sm font-medium text-black transition-opacity hover:opacity-80"
+                                onClick={() => setIsErrorModalOpen(false)}
+                            >
+                                Close
                             </button>
                         </div>
                     </div>
