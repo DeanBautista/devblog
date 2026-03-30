@@ -5,7 +5,7 @@ import useAuthStore from "../stores/authStore";
 
 export default function SideBar({ children, page }) {
 
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
 
   const navigate = useNavigate();
 
@@ -53,14 +53,15 @@ export default function SideBar({ children, page }) {
           <div className="flex flex-col gap-2">
             <span 
                 onClick={() => {navigate("/dashboard")}}
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full 
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "dashboard" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <LayoutDashboard size={20} className="text-white shrink-0" />
               Dashboard
             </span>
             <span 
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full 
+                onClick={() => {navigate("/posts")}}
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "posts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <FileText size={20} className="text-white shrink-0" />
@@ -68,7 +69,7 @@ export default function SideBar({ children, page }) {
             </span>
             <span 
                 onClick={() => {navigate("/newposts")}}
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full 
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "newposts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <FilePlus size={20} className="text-white shrink-0" />
@@ -92,10 +93,10 @@ export default function SideBar({ children, page }) {
 
           {/* Profile card */}
           <div className="flex items-center gap-3 pt-4 px-3 mt-7">
-            <img className="w-10 h-10 rounded-full object-cover shrink-0 bg-surface-variant" />
+            <img src={user?.avatar_url} className="w-10 h-10 rounded-full object-cover shrink-0 bg-surface-variant" />
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium text-on-surface truncate">John Doe</span>
-              <span className="text-xs text-on-surface-variant truncate">Administrator</span>
+              <span className="text-sm font-medium text-on-surface truncate">{user?.name}</span>
+              <span className="text-xs text-on-surface-variant truncate">Admin</span>
             </div>
             <button 
                 onClick={logout}

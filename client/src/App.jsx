@@ -1,8 +1,11 @@
 import React, { useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+
 import Login from "./pages/admin/Login"
 import Dashboard from "./pages/admin/Dashboard"
 import PostEditor from "./pages/admin/PostEditor"
+import Posts from "./pages/admin/Posts"
+
 import ProtectedRoute from "./routes/ProtectedRoute"
 import useAuthStore from "./stores/authStore"
 import PublicRoute from "./routes/PublicRoute"
@@ -31,6 +34,14 @@ function App() {
           <ProtectedRoute>
             <SideBar page="dashboard">
               <Dashboard />
+            </SideBar>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/posts" element={
+          <ProtectedRoute>
+            <SideBar page="posts">
+              <Posts />
             </SideBar>
           </ProtectedRoute>
         } />
