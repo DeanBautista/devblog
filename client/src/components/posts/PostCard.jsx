@@ -1,4 +1,4 @@
-import { Eye, MoreHorizontal } from "lucide-react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 
 const STATUS_STYLES = {
   PUBLISHED: "border border-emerald-400/25 bg-emerald-500/10 text-emerald-300",
@@ -43,13 +43,22 @@ export default function PostCard({ post }) {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
-            aria-label={`More actions for ${post.title}`}
-          >
-            <MoreHorizontal size={16} />
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+              aria-label={`Edit ${post.title}`}
+            >
+              <Edit size={16} />
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+              aria-label={`Delete ${post.title}`}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
@@ -87,13 +96,22 @@ export default function PostCard({ post }) {
 
         <span className="whitespace-pre-line text-xs leading-5 text-on-surface-variant">{post.dateDesktop}</span>
 
-        <button
-          type="button"
-          className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
-          aria-label={`More actions for ${post.title}`}
-        >
-          <MoreHorizontal size={16} />
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+            aria-label={`Edit ${post.title}`}
+          >
+            <Edit size={16} />
+          </button>
+          <button
+            type="button"
+            className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+            aria-label={`Delete ${post.title}`}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </article>
   );
