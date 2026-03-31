@@ -4,21 +4,29 @@ import { CalendarIcon, ClockIcon } from "../../assets/svgs/Icons";
 import { EDITOR_VIEWS } from "../../components/document_renderer/postEditorConstants";
 import DocumentRenderer from "../../components/document_renderer/DocumentRenderer";
 import useAuthStore from "../../stores/authStore";
+import usePostEditorStore from "../../stores/postEditorStore";
 import api from "../../lib/axios";
 
 export default function PostEditor() {
 
     const { user } = useAuthStore();
+    const postTitle = usePostEditorStore((state) => state.postTitle);
+    const postSlug = usePostEditorStore((state) => state.postSlug);
+    const postExcerpt = usePostEditorStore((state) => state.postExcerpt);
+    const editorContent = usePostEditorStore((state) => state.editorContent);
+    const editorView = usePostEditorStore((state) => state.editorView);
+    const readTimeMinutes = usePostEditorStore((state) => state.readTimeMinutes);
+    const setPostTitle = usePostEditorStore((state) => state.setPostTitle);
+    const setPostSlug = usePostEditorStore((state) => state.setPostSlug);
+    const setPostExcerpt = usePostEditorStore((state) => state.setPostExcerpt);
+    const setEditorContent = usePostEditorStore((state) => state.setEditorContent);
+    const setEditorView = usePostEditorStore((state) => state.setEditorView);
+    const setReadTimeMinutes = usePostEditorStore((state) => state.setReadTimeMinutes);
+    const resetDraft = usePostEditorStore((state) => state.resetDraft);
 
     const fileInputRef = useRef(null);
     const titleTextareaRef = useRef(null);
     const [preview, setPreview] = useState(null);
-    const [editorContent, setEditorContent] = useState("");
-    const [editorView, setEditorView] = useState(EDITOR_VIEWS.WRITE);
-    const [postTitle, setPostTitle] = useState("");
-    const [postSlug, setPostSlug] = useState("");
-    const [postExcerpt, setPostExcerpt] = useState("");
-    const [readTimeMinutes, setReadTimeMinutes] = useState("12");
     const [isExcerptModalOpen, setIsExcerptModalOpen] = useState(false);
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isConfirmPublishModalOpen, setIsConfirmPublishModalOpen] = useState(false);
@@ -30,7 +38,7 @@ export default function PostEditor() {
     const [validationErrors, setValidationErrors] = useState([]);
 
     const hasPostTitle = postTitle.trim().length > 0;
-    const activeCoverPreview = preview || null
+    const activeCoverPreview = preview || null;
     const normalizedReadTimeMinutes = readTimeMinutes.trim();
     const readTimeDisplayLabel = `${normalizedReadTimeMinutes || "0"} min read`;
     const publishDateDisplayLabel = useMemo(() => {
@@ -76,13 +84,8 @@ export default function PostEditor() {
     };
 
     const resetFormState = () => {
-        setPostTitle("");
-        setPostSlug("");
-        setPostExcerpt("");
-        setEditorContent("");
-        setReadTimeMinutes("12");
+        resetDraft();
         setPreview(null);
-        setEditorView(EDITOR_VIEWS.WRITE);
         setValidationErrors([]);
         setIsExcerptModalOpen(false);
 
