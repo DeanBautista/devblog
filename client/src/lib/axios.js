@@ -38,21 +38,16 @@ api.interceptors.response.use(
       original._retry = true;
 
       try {
-        console.log(1)
         const res = await axios.post(
           'http://localhost:3000/api/auth/refresh',
           {},
           { withCredentials: true }
         );
-        console.log(2)
         
 
         const newAccessToken = res.data.accessToken;
-        console.log(3)
         useAuthStore.setState({ accessToken: newAccessToken });
-        console.log(4)
         original.headers.Authorization = `Bearer ${newAccessToken}`;
-        console.log(5)
         return api(original);
       } catch {
         useAuthStore.setState({ user: null, accessToken: null });

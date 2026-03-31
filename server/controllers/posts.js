@@ -120,19 +120,35 @@ function toPositiveInteger(value, fallbackValue) {
   return parsedValue;
 }
 
+function normalizeStatusFilter(value) {
+  const normalizedValue = String(value ?? 'all').trim().toLowerCase();
+
+  if (normalizedValue === 'published') {
+    return 'published';
+  }
+
+  if (normalizedValue === 'draft') {
+    return 'draft';
+  }
+
+  return 'all';
+}
+
 async function listPosts(req, res) {
-  const page = toPositiveInteger(req.query.page, DEFAULT_PAGE);
+  const requestedPage = toPositiveInteger(req.query.page, DEFAULT_PAGE);
   const rawLimit = toPositiveInteger(req.query.limit, DEFAULT_LIMIT);
   const limit = Math.min(rawLimit, MAX_LIMIT);
-  const offset = (page - 1) * limit;
+  const statusFilter = normalizeStatusFilter(req.query.status);
 
-  try {
-    const [countRows] = await db.query('SELECT COUNT(*) AS total FROM posts');
-    const total = countRows[0]?.total ?? 0;
-    const totalPages = Math.max(1, Math.ceil(total / limit));
+  const countQuery =
+    statusFilter === 'all'
+      ? 'SELECT COUNT(*) AS total FROM posts'
+      : 'SELECT COUNT(*) AS total FROM posts WHERE LOWER(status) = ?';
+  const countParams = statusFilter === 'all' ? [] : [statusFilter];
 
-    const [rows] = await db.query(
-      `
+  const listQuery =
+    statusFilter === 'all'
+      ? `
         SELECT
           id,
           title,
@@ -145,13 +161,37 @@ async function listPosts(req, res) {
         FROM posts
         ORDER BY COALESCE(published_at, created_at) DESC, id DESC
         LIMIT ? OFFSET ?
-      `,
-      [limit, offset]
-    );
+      `
+      : `
+        SELECT
+          id,
+          title,
+          status,
+          views,
+          reading_time,
+          published_at,
+          created_at,
+          cover_image
+        FROM posts
+        WHERE LOWER(status) = ?
+        ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+        LIMIT ? OFFSET ?
+      `;
+
+  try {
+    const [countRows] = await db.query(countQuery, countParams);
+    const total = countRows[0]?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.min(requestedPage, totalPages);
+    const offset = (page - 1) * limit;
+
+    const listParams = statusFilter === 'all' ? [limit, offset] : [statusFilter, limit, offset];
+    const [rows] = await db.query(listQuery, listParams);
 
     return res.json({
       success: true,
       data: rows,
+      activeFilter: statusFilter,
       pagination: {
         page,
         limit,
@@ -170,7 +210,61 @@ async function listPosts(req, res) {
   }
 }
 
+async function deletePost(req, res) {
+  const userId = req.user?.sub;
+  const postId = Number.parseInt(req.params.id, 10);
+
+  if (!Number.isInteger(postId) || postId < 1) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid post id',
+    });
+  }
+
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized',
+    });
+  }
+
+  try {
+    const [rows] = await db.query(
+      'SELECT id, user_id FROM posts WHERE id = ? LIMIT 1',
+      [postId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    if (String(rows[0].user_id) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not allowed to delete this post',
+      });
+    }
+
+    await db.query('DELETE FROM posts WHERE id = ? LIMIT 1', [postId]);
+
+    return res.json({
+      success: true,
+      message: 'Post deleted successfully',
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete post',
+      error: err.message,
+    });
+  }
+}
+
 module.exports = {
   submitPost,
   listPosts,
+  deletePost,
 };

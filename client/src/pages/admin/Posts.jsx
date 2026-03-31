@@ -90,8 +90,6 @@ export default function Posts() {
 
     const { user, accessToken } = useAuthStore();
 
-    console.log('Posts page, user:', user);
-
     const [searchParams, setSearchParams] = useSearchParams();
     const currentPage = normalizePageParam(searchParams.get("page"));
 
@@ -99,6 +97,27 @@ export default function Posts() {
     const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
+    const [actionError, setActionError] = useState("");
+    const [deletingPostId, setDeletingPostId] = useState(null);
+    const [filterStatus, setFilterStatus] = useState("all");
+
+    const applyPostsResponse = (responseBody, fallbackPage) => {
+        const rows = Array.isArray(responseBody.data) ? responseBody.data : [];
+        const apiPagination = responseBody.pagination ?? {};
+        const totalValue = Number.parseInt(apiPagination.total, 10);
+        const totalPagesValue = Number.parseInt(apiPagination.totalPages, 10);
+        const pageValue = normalizePageParam(apiPagination.page ?? fallbackPage);
+
+        setPosts(rows.map((postRow, index) => mapPostForCard(postRow, index)));
+        setPagination({
+            page: pageValue,
+            limit: POSTS_PER_PAGE,
+            total: Number.isFinite(totalValue) && totalValue > 0 ? totalValue : 0,
+            totalPages: Number.isFinite(totalPagesValue) && totalPagesValue > 0 ? totalPagesValue : 1,
+            hasPrev: pageValue > 1,
+            hasNext: Number.isFinite(totalPagesValue) ? pageValue < totalPagesValue : false,
+        });
+    };
 
     useEffect(() => {
 
@@ -115,6 +134,7 @@ export default function Posts() {
                     params: {
                         page: currentPage,
                         limit: POSTS_PER_PAGE,
+                        status: filterStatus,
                     },
                 });
 
@@ -122,22 +142,7 @@ export default function Posts() {
                     return;
                 }
 
-                const responseBody = response.data ?? {};
-                const rows = Array.isArray(responseBody.data) ? responseBody.data : [];
-                const apiPagination = responseBody.pagination ?? {};
-                const totalValue = Number.parseInt(apiPagination.total, 10);
-                const totalPagesValue = Number.parseInt(apiPagination.totalPages, 10);
-                const pageValue = normalizePageParam(apiPagination.page ?? currentPage);
-
-                setPosts(rows.map((postRow, index) => mapPostForCard(postRow, index)));
-                setPagination({
-                    page: pageValue,
-                    limit: POSTS_PER_PAGE,
-                    total: Number.isFinite(totalValue) && totalValue > 0 ? totalValue : 0,
-                    totalPages: Number.isFinite(totalPagesValue) && totalPagesValue > 0 ? totalPagesValue : 1,
-                    hasPrev: pageValue > 1,
-                    hasNext: Number.isFinite(totalPagesValue) ? pageValue < totalPagesValue : false,
-                });
+                applyPostsResponse(response.data ?? {}, currentPage);
             } catch {
                 if (shouldIgnore) {
                     return;
@@ -165,7 +170,7 @@ export default function Posts() {
         return () => {
             shouldIgnore = true;
         };
-    }, [currentPage]);
+    }, [currentPage, filterStatus, user, accessToken]);
 
     const pageNumbers = useMemo(
         () => Array.from({ length: pagination.totalPages }, (_, index) => index + 1),
@@ -174,6 +179,7 @@ export default function Posts() {
 
     const showEmptyState = !isLoading && posts.length === 0 && !loadError;
     const showErrorState = !isLoading && !!loadError;
+    const showActionError = !isLoading && !!actionError;
 
     const updatePageInUrl = (nextPage) => {
         const boundedPage = Math.min(Math.max(nextPage, 1), pagination.totalPages);
@@ -181,6 +187,49 @@ export default function Posts() {
         nextParams.set("page", String(boundedPage));
         setSearchParams(nextParams);
     };
+
+    const handleDeletePost = async (postId) => {
+        const parsedPostId = Number.parseInt(postId, 10);
+        if (!Number.isInteger(parsedPostId) || parsedPostId < 1) {
+            return false;
+        }
+
+        const isDeletingLastItemOnPage = posts.length === 1;
+
+        setActionError("");
+        setDeletingPostId(parsedPostId);
+
+        try {
+            await api.delete(`/api/posts/${parsedPostId}`);
+
+            if (isDeletingLastItemOnPage && currentPage > 1) {
+                updatePageInUrl(currentPage - 1);
+            } else {
+                const response = await api.get("/api/posts", {
+                    params: {
+                        page: currentPage,
+                        limit: POSTS_PER_PAGE,
+                        status: filterStatus,
+                    },
+                });
+
+                applyPostsResponse(response.data ?? {}, currentPage);
+            }
+
+            return true;
+        } catch {
+            setActionError("Unable to delete post right now.");
+            return false;
+        } finally {
+            setDeletingPostId(null);
+        }
+    };
+
+    const FILTER_TABS = [
+        { label: "All", value: "all" },
+        { label: "Published", value: "published" },
+        { label: "Drafts", value: "draft" },
+    ];
 
     return (
         <section className="min-h-screen w-full pt-14 md:pt-0">
@@ -203,18 +252,23 @@ export default function Posts() {
                         <h1 className="text-3xl font-semibold tracking-tight text-on-surface sm:text-4xl">All Posts</h1>
 
                         <div className="mt-5 flex items-center gap-6 text-sm">
-                            <button
-                                type="button"
-                                className="border-b border-primary-fixed pb-1 font-medium text-on-surface"
-                            >
-                                All
-                            </button>
-                            <button type="button" className="pb-1 text-on-surface-variant">
-                                Published
-                            </button>
-                            <button type="button" className="pb-1 text-on-surface-variant">
-                                Drafts
-                            </button>
+                            {FILTER_TABS.map(({ label, value }) => (
+                                <button
+                                    key={value}
+                                    onClick={() => {
+                                        setFilterStatus(value);
+                                        updatePageInUrl(1);
+                                    }}
+                                    type="button"
+                                    className={`pb-1 transition-colors ${
+                                        filterStatus === value
+                                            ? "border-b border-primary-fixed font-medium text-on-surface"
+                                            : "text-on-surface-variant hover:text-on-surface"
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -245,8 +299,13 @@ export default function Posts() {
 
                         {!isLoading &&
                             posts.map((post) => (
-                            <PostCard key={post.id} post={post} />
-                            ))}
+                                    <PostCard
+                                        key={post.id}
+                                        post={post}
+                                        onDelete={handleDeletePost}
+                                        isDeleting={deletingPostId === post.id}
+                                    />
+                        ))}
 
                         {showEmptyState && (
                             <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-8 text-center text-sm text-on-surface-variant sm:px-5">
@@ -257,6 +316,12 @@ export default function Posts() {
                         {showErrorState && (
                             <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-8 text-center text-sm text-on-surface-variant sm:px-5">
                                 {loadError}
+                            </article>
+                        )}
+
+                        {showActionError && (
+                            <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-8 text-center text-sm text-on-surface-variant sm:px-5">
+                                {actionError}
                             </article>
                         )}
                     </div>
