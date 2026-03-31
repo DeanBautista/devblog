@@ -1,5 +1,9 @@
 const db = require('../config/db');
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 5;
+const MAX_LIMIT = 50;
+
 function normalizeSlug(value) {
   return value
     .toLowerCase()
@@ -107,6 +111,66 @@ async function submitPost(req, res) {
   }
 }
 
+function toPositiveInteger(value, fallbackValue) {
+  const parsedValue = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsedValue) || parsedValue < 1) {
+    return fallbackValue;
+  }
+
+  return parsedValue;
+}
+
+async function listPosts(req, res) {
+  const page = toPositiveInteger(req.query.page, DEFAULT_PAGE);
+  const rawLimit = toPositiveInteger(req.query.limit, DEFAULT_LIMIT);
+  const limit = Math.min(rawLimit, MAX_LIMIT);
+  const offset = (page - 1) * limit;
+
+  try {
+    const [countRows] = await db.query('SELECT COUNT(*) AS total FROM posts');
+    const total = countRows[0]?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const [rows] = await db.query(
+      `
+        SELECT
+          id,
+          title,
+          status,
+          views,
+          reading_time,
+          published_at,
+          created_at,
+          cover_image
+        FROM posts
+        ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+        LIMIT ? OFFSET ?
+      `,
+      [limit, offset]
+    );
+
+    return res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load posts',
+      error: err.message,
+    });
+  }
+}
+
 module.exports = {
   submitPost,
+  listPosts,
 };
