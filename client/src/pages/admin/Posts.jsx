@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import PostCard, { PostCardSkeleton } from "../../components/posts/PostCard";
 import api from "../../lib/axios";
+import useAuthStore from "../../stores/authStore";
 
 const POSTS_PER_PAGE = 5;
 const COVER_VARIANTS = ["mint", "graphite", "parchment", "ivory"];
@@ -86,6 +87,11 @@ function mapPostForCard(postRow, fallbackIndex) {
 }
 
 export default function Posts() {
+
+    const { user, accessToken } = useAuthStore();
+
+    console.log('Posts page, user:', user);
+
     const [searchParams, setSearchParams] = useSearchParams();
     const currentPage = normalizePageParam(searchParams.get("page"));
 
@@ -95,6 +101,9 @@ export default function Posts() {
     const [loadError, setLoadError] = useState("");
 
     useEffect(() => {
+
+        if (!user || !accessToken) return;
+
         let shouldIgnore = false;
 
         const loadPosts = async () => {

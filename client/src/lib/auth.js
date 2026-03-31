@@ -1,5 +1,4 @@
 // lib/auth.js
-import axios from 'axios';
 import api from './axios';
 
 export const login = async (email, password) => {
@@ -13,8 +12,9 @@ export const logout = async () => {
 
 // ✅ plain axios — bypasses the interceptor, no infinite loop
 export const refreshToken = async () => {
-  const response = await axios.post(
-    '/api/auth/refresh',
+  console.log('tamaki:  ', api.defaults.baseURL);
+  const response = await api.post(
+    'http://localhost:3000/api/auth/refresh',
     {},
     { withCredentials: true }
   );
