@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 
 const STATUS_STYLES = {
@@ -74,14 +75,80 @@ export function PostCardSkeleton() {
   );
 }
 
-export default function PostCard({ post }) {
+function DeletePostModal({ title, isDeleting, onCancel, onDelete }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" role="presentation">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-post-title"
+        className="w-full max-w-md rounded-2xl border border-outline-variant/40 bg-surface-container p-6 shadow-2xl"
+      >
+        <h4 id="delete-post-title" className="text-lg font-semibold text-on-surface">
+          Delete post?
+        </h4>
+
+        <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
+          This will permanently remove &quot;{title}&quot;. This action cannot be undone.
+        </p>
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="rounded-lg border border-outline-variant/40 px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PostCard({ post, onDelete, isDeleting = false }) {
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const statusClass =
     STATUS_STYLES[post.status] ??
     "border border-outline-variant/30 bg-surface-container text-on-surface";
 
+  const handleOpenDeleteModal = () => {
+    if (!isDeleting) {
+      setDeleteModalOpen(true);
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (!isDeleting) {
+      setDeleteModalOpen(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete || isDeleting) {
+      return;
+    }
+
+    const isDeleted = await onDelete(post.id);
+    if (isDeleted) {
+      setDeleteModalOpen(false);
+    }
+  };
+
   return (
-    <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-4 sm:px-5">
-      <div className="xl:hidden">
+    <>
+      <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-4 sm:px-5">
+        <div className="xl:hidden">
         <div className="flex items-start gap-3">
           <PostCover variant={post.coverVariant} title={post.title} />
 
@@ -102,7 +169,9 @@ export default function PostCard({ post }) {
             </button>
             <button
               type="button"
-              className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+              onClick={handleOpenDeleteModal}
+              disabled={isDeleting}
+              className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
               aria-label={`Delete ${post.title}`}
             >
               <Trash2 size={16} />
@@ -155,13 +224,25 @@ export default function PostCard({ post }) {
           </button>
           <button
             type="button"
-            className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+            onClick={handleOpenDeleteModal}
+            disabled={isDeleting}
+            className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={`Delete ${post.title}`}
           >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
-    </article>
+      </article>
+
+      {isDeleteModalOpen && (
+        <DeletePostModal
+          title={post.title}
+          isDeleting={isDeleting}
+          onCancel={handleCloseDeleteModal}
+          onDelete={handleConfirmDelete}
+        />
+      )}
+    </>
   );
 }
