@@ -14,11 +14,13 @@ import SideBar from "./components/SideBar"
 
 function App() {
 
-  const { init } = useAuthStore();
+  const { init, loading } = useAuthStore();
 
   useEffect(() => {
     init();
   }, []);
+
+  if (loading) return null;
 
   
   return (

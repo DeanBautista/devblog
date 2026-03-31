@@ -11,7 +11,7 @@ function generateAccessToken(user) {
   return jwt.sign(
     { sub: user.id, email: user.email },
     ACCESS_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "1m" }
   );
 }
 
@@ -65,27 +65,43 @@ async function logout(req, res) {
 }
 
 async function refresh(req, res) {
+  console.log(1)
   const { refreshToken } = req.cookies;
+  console.log(2)
   
   // ❌ remove refreshTokenStore.has() — Set is wiped on every server restart
   if (!refreshToken) {
+    console.log(3)
     return res.status(401).json({ error: "No refresh token" });
   }
 
+  console.log(4)
   try {
+    console.log(5)
     const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
+    console.log(6)
     const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [decoded.sub]);
+    console.log(7)
     if (rows.length === 0) return res.status(401).json({ error: "User not found" });
 
+    console.log(8)
     const user = rows[0];
 
+    console.log(9)
     refreshTokenStore.delete(refreshToken);
+    console.log(10)
     const newRefreshToken = generateRefreshToken(user);
+    console.log(11)
     res.cookie("refreshToken", newRefreshToken, cookieOptions);
 
+    console.log(12)
     const newAccessToken = generateAccessToken(user);
+    console.log(13)
+    console.log('Generated new access token for user:', user.email);
+    console.log(14)
     res.json({ accessToken: newAccessToken });
   } catch (err) {
+    console.log(15)
     res.status(401).json({ error: "Invalid refresh token" });
   }
 }
