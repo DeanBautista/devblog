@@ -2,14 +2,26 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FileText, FilePlus, User, Settings, LogOut, Menu, X } from "lucide-react";
 import useAuthStore from "../stores/authStore";
+import usePostEditorStore, { POST_EDITOR_DEFAULTS } from "../stores/postEditorStore";
 
 export default function SideBar({ children, page }) {
 
   const { logout, user } = useAuthStore();
+  const postTitle = usePostEditorStore((state) => state.postTitle);
+  const postSlug = usePostEditorStore((state) => state.postSlug);
+  const postExcerpt = usePostEditorStore((state) => state.postExcerpt);
+  const editorContent = usePostEditorStore((state) => state.editorContent);
+  const readTimeMinutes = usePostEditorStore((state) => state.readTimeMinutes);
 
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
+  const hasUnsavedPostDraft =
+    postTitle.trim().length > 0 ||
+    postSlug.trim().length > 0 ||
+    postExcerpt.trim().length > 0 ||
+    editorContent.trim().length > 0 ||
+    readTimeMinutes.trim() !== POST_EDITOR_DEFAULTS.readTimeMinutes;
 
   useEffect(() => {
     const handleResize = () => {
@@ -18,6 +30,23 @@ export default function SideBar({ children, page }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hasUnsavedPostDraft) {
+      return;
+    }
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "You have unsaved changes in New Post. Are you sure you want to leave?";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedPostDraft]);
 
   return (
     <div className="">
@@ -31,7 +60,7 @@ export default function SideBar({ children, page }) {
 
       {/* Sidebar */}
       <div
-        className={`fixed flex flex-col justify-between top-0 bottom-0 w-[260px] bg-surface-container px-5 py-5 z-40 transition-transform duration-300 ease-in-out
+        className={`fixed flex flex-col justify-between top-0 bottom-0 w-65 bg-surface-container px-5 py-5 z-40 transition-transform duration-300 ease-in-out
           md:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -81,11 +110,11 @@ export default function SideBar({ children, page }) {
         {/* bottom section */}
         <div className="border-t-[0.5px]">
           <div className="flex flex-col gap-1 mt-7">
-            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-[230px]">
+            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-57.5">
               <User size={20} className="text-white shrink-0" />
               Profile
             </span>
-            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-[230px]">
+            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-57.5">
               <Settings size={20} className="text-white shrink-0" />
               Settings
             </span>
@@ -119,7 +148,7 @@ export default function SideBar({ children, page }) {
       )}
 
       {/* Children container */}
-      <div className="transition-all duration-300 ease-in-out md:pl-[260px] mx-5 my-5">
+      <div className="transition-all duration-300 ease-in-out md:pl-65 mx-5 my-5">
         {children}
       </div>
     </div>
