@@ -25,6 +25,55 @@ function PostCover({ variant, title }) {
   );
 }
 
+export function PostCardSkeleton() {
+  return (
+    <article
+      className="animate-pulse rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-4 sm:px-5"
+      aria-hidden="true"
+    >
+      <div className="xl:hidden">
+        <div className="flex items-start gap-3">
+          <span className="h-12 w-14 rounded-lg bg-surface-container" />
+
+          <div className="min-w-0 flex-1">
+            <span className="block h-4 w-11/12 rounded-md bg-surface-container" />
+            <span className="mt-2 block h-3 w-24 rounded-md bg-surface-container" />
+          </div>
+
+          <div className="flex gap-2">
+            <span className="h-9 w-9 rounded-md border border-outline-variant/30 bg-surface-container" />
+            <span className="h-9 w-9 rounded-md border border-outline-variant/30 bg-surface-container" />
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="h-6 w-16 rounded-full bg-surface-container" />
+          <span className="h-6 w-20 rounded-md bg-surface-container" />
+          <span className="h-6 w-24 rounded-md bg-surface-container" />
+        </div>
+      </div>
+
+      <div className="hidden items-center gap-4 xl:grid xl:grid-cols-[84px_minmax(0,1.7fr)_112px_112px_108px_70px]">
+        <span className="h-12 w-14 rounded-lg bg-surface-container" />
+
+        <div className="min-w-0">
+          <span className="block h-5 w-4/5 rounded-md bg-surface-container" />
+          <span className="mt-2 block h-3 w-24 rounded-md bg-surface-container" />
+        </div>
+
+        <span className="h-6 w-16 rounded-full bg-surface-container" />
+        <span className="h-4 w-16 rounded-md bg-surface-container" />
+        <span className="h-8 w-14 rounded-md bg-surface-container" />
+
+        <div className="flex gap-2">
+          <span className="h-9 w-9 rounded-md border border-outline-variant/30 bg-surface-container" />
+          <span className="h-9 w-9 rounded-md border border-outline-variant/30 bg-surface-container" />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function PostCard({ post }) {
   const statusClass =
     STATUS_STYLES[post.status] ??
@@ -39,7 +88,7 @@ export default function PostCard({ post }) {
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold leading-snug text-on-surface">{post.title}</h3>
             <p className="mt-1 text-xs text-on-surface-variant">
-              {post.category} - {post.readTime}
+              {post.readTime}
             </p>
           </div>
 
@@ -81,7 +130,7 @@ export default function PostCard({ post }) {
         <div className="min-w-0">
           <h3 className="text-base font-semibold leading-snug text-on-surface">{post.title}</h3>
           <p className="mt-1 text-xs text-on-surface-variant">
-            {post.category} - {post.readTime}
+            {post.readTime}
           </p>
         </div>
 
