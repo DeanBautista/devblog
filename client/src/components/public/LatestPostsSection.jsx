@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import LatestPostCard from './LatestPostCard';
+import { ChevronRight } from 'lucide-react';
+import PublicArticleCard from './PublicArticleCard';
 
 export default function LatestPostsSection({ articles = [], isLoading = false }) {
   const visibleArticles = Array.isArray(articles) ? articles.slice(0, 3) : [];
@@ -27,7 +28,7 @@ export default function LatestPostsSection({ articles = [], isLoading = false })
       <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {visibleArticles.map((article, index) => (
           <div key={article.id || article.slug || index} className="hero-reveal" style={{ animationDelay: `${220 + index * 120}ms` }}>
-            <LatestPostCard article={article} index={index} />
+            <PublicArticleCard article={article} index={index} badgeLabel="#latest" />
           </div>
         ))}
       </div>
@@ -44,7 +45,7 @@ export default function LatestPostsSection({ articles = [], isLoading = false })
           className="hero-reveal inline-flex items-center gap-3 rounded-full border border-outline-variant/40 bg-surface-container-low px-5 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container"
         >
           Explore full archive
-          <span aria-hidden="true" className="text-base">-&gt;</span>
+          <ChevronRight aria-hidden="true" size={16} />
         </Link>
       </div>
     </div>

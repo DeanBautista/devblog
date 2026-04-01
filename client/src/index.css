@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+html {
+  /* Reserve vertical scrollbar space to avoid layout shifts between pages */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   color: #dae2fd;
   background-color: #0b1326;
