@@ -273,7 +273,7 @@ export default function Posts() {
                     </div>
 
                     <Link
-                        to="/newposts"
+                        to="/admin/newposts"
                         className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-container px-5 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                     >
                         <Plus size={16} />

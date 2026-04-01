@@ -26,13 +26,13 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={
+        <Route path="/admin/login" element={
           <PublicRoute>
             <Login />
           </PublicRoute>
           } />
 
-        <Route path="/dashboard" element={
+        <Route path="/admin/dashboard" element={
           <ProtectedRoute>
             <SideBar page="dashboard">
               <Dashboard />
@@ -40,7 +40,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/posts" element={
+        <Route path="/admin/posts" element={
           <ProtectedRoute>
             <SideBar page="posts">
               <Posts />
@@ -48,7 +48,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/newposts" element={
+        <Route path="/admin/newposts" element={
           <ProtectedRoute>
             <SideBar page="newposts">
               <PostEditor />
@@ -56,8 +56,8 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Catch-all: redirect unknown URLs to /login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all: redirect unknown URLs to /admin/login */}
+        <Route path="*" element={<Navigate to="/admin/login" replace />} />
       </Routes>
     </Router>
   )
