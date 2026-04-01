@@ -6,6 +6,9 @@ import DocumentRenderer from "../../components/document_renderer/DocumentRendere
 import useAuthStore from "../../stores/authStore";
 import usePostEditorStore from "../../stores/postEditorStore";
 import api from "../../lib/axios";
+import { normalizeSlug } from "../../utils/slug";
+
+const MAX_POST_TAGS = 25;
 
 export default function PostEditor() {
 
@@ -16,12 +19,15 @@ export default function PostEditor() {
     const editorContent = usePostEditorStore((state) => state.editorContent);
     const editorView = usePostEditorStore((state) => state.editorView);
     const readTimeMinutes = usePostEditorStore((state) => state.readTimeMinutes);
+    const selectedTagIds = usePostEditorStore((state) => state.selectedTagIds);
     const setPostTitle = usePostEditorStore((state) => state.setPostTitle);
     const setPostSlug = usePostEditorStore((state) => state.setPostSlug);
     const setPostExcerpt = usePostEditorStore((state) => state.setPostExcerpt);
     const setEditorContent = usePostEditorStore((state) => state.setEditorContent);
     const setEditorView = usePostEditorStore((state) => state.setEditorView);
     const setReadTimeMinutes = usePostEditorStore((state) => state.setReadTimeMinutes);
+    const setSelectedTagIds = usePostEditorStore((state) => state.setSelectedTagIds);
+    const toggleSelectedTagId = usePostEditorStore((state) => state.toggleSelectedTagId);
     const resetDraft = usePostEditorStore((state) => state.resetDraft);
 
     const fileInputRef = useRef(null);
@@ -36,11 +42,53 @@ export default function PostEditor() {
     const [submitError, setSubmitError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [validationErrors, setValidationErrors] = useState([]);
+    const [availableTags, setAvailableTags] = useState([]);
+    const [isTagsLoading, setIsTagsLoading] = useState(false);
+    const [tagsLoadError, setTagsLoadError] = useState("");
+    const [tagSearchTerm, setTagSearchTerm] = useState("");
 
     const hasPostTitle = postTitle.trim().length > 0;
     const activeCoverPreview = preview || null;
     const normalizedReadTimeMinutes = readTimeMinutes.trim();
     const readTimeDisplayLabel = `${normalizedReadTimeMinutes || "0"} min read`;
+    const normalizedTagSearchTerm = tagSearchTerm.trim().toLowerCase();
+    const selectedTags = useMemo(() => {
+        if (selectedTagIds.length < 1) {
+            return [];
+        }
+
+        const tagMap = new Map(availableTags.map((tag) => [tag.id, tag]));
+
+        return selectedTagIds
+            .map((tagId) => {
+                const mappedTag = tagMap.get(tagId);
+
+                if (mappedTag) {
+                    return mappedTag;
+                }
+
+                return {
+                    id: tagId,
+                    name: `Tag #${tagId}`,
+                    slug: "",
+                };
+            });
+    }, [availableTags, selectedTagIds]);
+    const filteredTags = useMemo(() => {
+        if (!normalizedTagSearchTerm) {
+            return availableTags;
+        }
+
+        return availableTags.filter((tag) => {
+            const normalizedName = String(tag.name ?? "").toLowerCase();
+            const normalizedSlug = String(tag.slug ?? "").toLowerCase();
+
+            return (
+                normalizedName.includes(normalizedTagSearchTerm) ||
+                normalizedSlug.includes(normalizedTagSearchTerm)
+            );
+        });
+    }, [availableTags, normalizedTagSearchTerm]);
     const publishDateDisplayLabel = useMemo(() => {
         return new Date().toLocaleDateString("en-US", {
             month: "short",
@@ -62,21 +110,91 @@ export default function PostEditor() {
         }
     }, [postTitle, editorView]);
 
+    useEffect(() => {
+        let shouldIgnore = false;
+
+        const loadAvailableTags = async () => {
+            setIsTagsLoading(true);
+            setTagsLoadError("");
+
+            try {
+                const response = await api.get("/api/tags", {
+                    params: {
+                        page: 1,
+                        limit: 100,
+                    },
+                });
+
+                if (shouldIgnore) {
+                    return;
+                }
+
+                const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+                const normalizedTags = rows
+                    .map((row) => {
+                        const parsedId = Number.parseInt(row?.id, 10);
+
+                        if (!Number.isInteger(parsedId) || parsedId < 1) {
+                            return null;
+                        }
+
+                        return {
+                            id: parsedId,
+                            name: String(row?.name ?? "").trim(),
+                            slug: String(row?.slug ?? "").trim(),
+                        };
+                    })
+                    .filter(Boolean);
+
+                setAvailableTags(normalizedTags);
+            } catch (error) {
+                if (shouldIgnore) {
+                    return;
+                }
+
+                const message =
+                    error?.response?.data?.message ||
+                    error?.response?.data?.error ||
+                    "Unable to load available tags.";
+
+                setAvailableTags([]);
+                setTagsLoadError(message);
+            } finally {
+                if (!shouldIgnore) {
+                    setIsTagsLoading(false);
+                }
+            }
+        };
+
+        loadAvailableTags();
+
+        return () => {
+            shouldIgnore = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (selectedTagIds.length < 1) {
+            return;
+        }
+
+        if (availableTags.length < 1) {
+            return;
+        }
+
+        const validTagIdSet = new Set(availableTags.map((tag) => tag.id));
+        const sanitizedTagIds = selectedTagIds.filter((tagId) => validTagIdSet.has(tagId));
+
+        if (sanitizedTagIds.length !== selectedTagIds.length) {
+            setSelectedTagIds(sanitizedTagIds);
+        }
+    }, [availableTags, selectedTagIds, setSelectedTagIds]);
+
     const handleImageChange = (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
         if (preview) URL.revokeObjectURL(preview);
         setPreview(URL.createObjectURL(file));
-    };
-
-    const normalizeSlug = (value) => {
-        return value
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9\s-]/g, "")
-            .replace(/\s+/g, "-")
-            .replace(/-+/g, "-")
-            .replace(/^-+|-+$/g, "");
     };
 
     const getResolvedSlug = () => {
@@ -103,6 +221,7 @@ export default function PostEditor() {
         if (!normalizedReadTimeMinutes || normalizedReadTimeMinutes === "0") errors.push("Read time");
         if (!editorContent.trim()) errors.push("Main content");
         if (!getResolvedSlug()) errors.push("URL slug");
+        if (selectedTagIds.length > MAX_POST_TAGS) errors.push("Tag selection");
 
         if (errors.length > 0) {
             setValidationErrors(errors);
@@ -139,6 +258,7 @@ export default function PostEditor() {
                 content: editorContent.trim(),
                 reading_time: Number.parseInt(normalizedReadTimeMinutes, 10),
                 cover_image: null,
+                tag_ids: selectedTagIds,
             };
 
             const response = await api.post("/api/posts/submitpost", payload);
@@ -162,6 +282,22 @@ export default function PostEditor() {
     const handleReadTimeChange = (event) => {
         const digitsOnly = event.target.value.replace(/\D/g, "");
         setReadTimeMinutes(digitsOnly);
+    };
+
+    const handleToggleTagSelection = (tagId) => {
+        const parsedTagId = Number.parseInt(tagId, 10);
+
+        if (!Number.isInteger(parsedTagId) || parsedTagId < 1) {
+            return;
+        }
+
+        const isSelected = selectedTagIds.includes(parsedTagId);
+
+        if (!isSelected && selectedTagIds.length >= MAX_POST_TAGS) {
+            return;
+        }
+
+        toggleSelectedTagId(parsedTagId);
     };
 
     const handleEditorViewChange = (nextView) => {
@@ -297,6 +433,85 @@ export default function PostEditor() {
                                         </label>
                                     </div>
                                 </div>
+
+                                <section className="mt-6 rounded-xl border border-outline-variant/30 bg-surface-container-low/60 p-4 sm:p-5">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h2 className="text-sm font-semibold text-on-surface">Post Tags</h2>
+                                            <p className="mt-1 text-xs text-on-surface-variant">
+                                                Add up to {MAX_POST_TAGS} tags to improve categorization.
+                                            </p>
+                                        </div>
+
+                                        <span className="w-fit rounded-full border border-outline-variant/40 bg-surface-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+                                            {selectedTagIds.length} selected
+                                        </span>
+                                    </div>
+
+                                    {selectedTags.length > 0 ? (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {selectedTags.map((tag) => (
+                                                <button
+                                                    key={`selected-tag-${tag.id}`}
+                                                    type="button"
+                                                    onClick={() => handleToggleTagSelection(tag.id)}
+                                                    className="rounded-full border border-primary-fixed/40 bg-primary-fixed/15 px-3 py-1 text-xs font-medium text-on-surface transition-colors hover:bg-primary-fixed/25"
+                                                >
+                                                    {tag.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : null}
+
+                                    <div className="mt-4">
+                                        <input
+                                            type="text"
+                                            value={tagSearchTerm}
+                                            onChange={(event) => setTagSearchTerm(event.target.value)}
+                                            placeholder="Search available tags..."
+                                            className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-sm text-on-surface outline-none transition-colors focus:border-primary-fixed"
+                                        />
+                                    </div>
+
+                                    {isTagsLoading ? (
+                                        <p className="mt-3 text-xs text-on-surface-variant">Loading tags...</p>
+                                    ) : null}
+
+                                    {!isTagsLoading && tagsLoadError ? (
+                                        <p className="mt-3 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+                                            {tagsLoadError}
+                                        </p>
+                                    ) : null}
+
+                                    {!isTagsLoading && !tagsLoadError ? (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {filteredTags.length > 0 ? (
+                                                filteredTags.map((tag) => {
+                                                    const isSelected = selectedTagIds.includes(tag.id);
+
+                                                    return (
+                                                        <button
+                                                            key={`available-tag-${tag.id}`}
+                                                            type="button"
+                                                            onClick={() => handleToggleTagSelection(tag.id)}
+                                                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                                                isSelected
+                                                                    ? "border-primary-fixed bg-primary-fixed text-black"
+                                                                    : "border-outline-variant/40 bg-surface-container text-on-surface-variant hover:text-on-surface"
+                                                            }`}
+                                                        >
+                                                            {tag.name}
+                                                        </button>
+                                                    );
+                                                })
+                                            ) : (
+                                                <span className="text-xs text-on-surface-variant">
+                                                    No tags match your search.
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </section>
                             </div>
                         ) : null}
 
@@ -386,6 +601,19 @@ export default function PostEditor() {
                                             </span>
                                         </div>
                                     </div>
+
+                                    {selectedTags.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedTags.map((tag) => (
+                                                <span
+                                                    key={`preview-tag-${tag.id}`}
+                                                    className="rounded-full border border-outline-variant/40 bg-surface-container px-3 py-1 text-xs font-medium text-on-surface-variant"
+                                                >
+                                                    {tag.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 <DocumentRenderer value={editorContent} />
