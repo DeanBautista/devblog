@@ -51,7 +51,7 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         useAuthStore.setState({ user: null, accessToken: null });
-        window.location.href = '/login';
+        window.location.href = '/admin/login';
       }
     }
 

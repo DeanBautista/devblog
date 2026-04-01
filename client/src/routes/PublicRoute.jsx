@@ -6,7 +6,7 @@ export default function PublicRoute({ children }) {
     const { user } = useAuthStore();
 
     if (user) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/admin/dashboard" replace />;
     }
   return children;
 }

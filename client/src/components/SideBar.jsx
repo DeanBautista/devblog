@@ -81,7 +81,7 @@ export default function SideBar({ children, page }) {
 
           <div className="flex flex-col gap-2">
             <span 
-                onClick={() => {navigate("/dashboard")}}
+                onClick={() => {navigate("/admin/dashboard")}}
                 className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "dashboard" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
@@ -89,7 +89,7 @@ export default function SideBar({ children, page }) {
               Dashboard
             </span>
             <span 
-                onClick={() => {navigate("/posts")}}
+                onClick={() => {navigate("/admin/posts")}}
                 className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "posts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
@@ -97,7 +97,7 @@ export default function SideBar({ children, page }) {
               Posts
             </span>
             <span 
-                onClick={() => {navigate("/newposts")}}
+                onClick={() => {navigate("/admin/newposts")}}
                 className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "newposts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
