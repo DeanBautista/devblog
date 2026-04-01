@@ -128,7 +128,9 @@ export default function SideBar({ children, page }) {
               <span className="text-xs text-on-surface-variant truncate">Admin</span>
             </div>
             <button 
-                onClick={logout}
+                onClick={() => { 
+                  logout(); 
+                }}
                 className="text-on-surface-variant hover:text-white transition-colors shrink-0 ml-auto"
             >
               <LogOut size={18} />

@@ -5,16 +5,20 @@ import Login from "./pages/admin/Login"
 import Dashboard from "./pages/admin/Dashboard"
 import PostEditor from "./pages/admin/PostEditor"
 import Posts from "./pages/admin/Posts"
+import Home from "./pages/public/Home"
+import Article from "./pages/public/Article"
+import About from "./pages/public/About"
 
 import ProtectedRoute from "./routes/ProtectedRoute"
 import useAuthStore from "./stores/authStore"
 import PublicRoute from "./routes/PublicRoute"
 import { Navigate } from "react-router-dom";
 import SideBar from "./components/SideBar"
+import PublicLayout from "./components/public/PublicLayout"
 
 function App() {
 
-  const { init, loading } = useAuthStore();
+  const { init, loading, user } = useAuthStore();
 
   useEffect(() => {
     init();
@@ -26,6 +30,16 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route element={
+          <PublicRoute>
+            <PublicLayout />
+          </PublicRoute>
+        }>
+          <Route path="/" element={<Home />} />
+          <Route path="/article" element={<Article />} />
+          <Route path="/about" element={<About />} />
+        </Route>
+
         <Route path="/admin/login" element={
           <PublicRoute>
             <Login />
@@ -56,8 +70,8 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Catch-all: redirect unknown URLs to /admin/login */}
-        <Route path="*" element={<Navigate to="/admin/login" replace />} />
+        <Route path="/admin/*" element={<Navigate to={user ? "/admin/dashboard" : "/"} replace />} />
+        <Route path="*" element={<Navigate to={user ? "/admin/dashboard" : "/"} replace />} />
       </Routes>
     </Router>
   )

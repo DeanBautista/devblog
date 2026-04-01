@@ -47,3 +47,86 @@ body {
   --color-error-container: #93000a;
   --color-on-error:        #690005;
 }
+
+@keyframes hero-content-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+    filter: blur(6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-portrait-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.92);
+    filter: blur(6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-portrait-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.hero-reveal {
+  opacity: 0;
+  animation: hero-content-reveal 760ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  will-change: opacity, transform, filter;
+}
+
+.hero-reveal-delay-1 {
+  animation-delay: 110ms;
+}
+
+.hero-reveal-delay-2 {
+  animation-delay: 190ms;
+}
+
+.hero-reveal-delay-3 {
+  animation-delay: 280ms;
+}
+
+.hero-reveal-delay-4 {
+  animation-delay: 370ms;
+}
+
+.hero-reveal-delay-5 {
+  animation-delay: 460ms;
+}
+
+.hero-portrait {
+  opacity: 0;
+  animation:
+    hero-portrait-reveal 860ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms forwards,
+    hero-portrait-float 6.2s ease-in-out 1.05s infinite;
+  will-change: opacity, transform, filter;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-reveal,
+  .hero-portrait {
+    opacity: 1;
+    animation: none;
+    transform: none;
+    filter: none;
+  }
+}
