@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import PostCard, { PostCardSkeleton } from "../../components/posts/PostCard";
+import SearchInputWithResults from "../../components/search/SearchInputWithResults";
+import SearchResultCard from "../../components/search/SearchResultCard";
 import api from "../../lib/axios";
 import useAuthStore from "../../stores/authStore";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 
 const POSTS_PER_PAGE = 5;
 const COVER_VARIANTS = ["mint", "graphite", "parchment", "ivory"];
@@ -100,6 +103,14 @@ export default function Posts() {
     const [actionError, setActionError] = useState("");
     const [deletingPostId, setDeletingPostId] = useState(null);
     const [filterStatus, setFilterStatus] = useState("all");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
+    const normalizedSearchTerm = searchTerm.trim();
+    const debouncedSearchTerm = useDebouncedValue(normalizedSearchTerm, 400);
+    const isSearchPending =
+        normalizedSearchTerm.length >= 1 && normalizedSearchTerm !== debouncedSearchTerm;
 
     const applyPostsResponse = (responseBody, fallbackPage) => {
         const rows = Array.isArray(responseBody.data) ? responseBody.data : [];
@@ -172,10 +183,73 @@ export default function Posts() {
         };
     }, [currentPage, filterStatus, user, accessToken]);
 
+    useEffect(() => {
+
+        if (!user || !accessToken) return;
+
+        let shouldIgnore = false;
+        const normalizedQuery = debouncedSearchTerm.trim();
+
+        if (normalizedQuery.length < 1) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return () => {
+                shouldIgnore = true;
+            };
+        }
+
+        const loadSearchResults = async () => {
+            setIsSearching(true);
+
+            try {
+                const response = await api.get("/api/posts", {
+                    params: {
+                        page: 1,
+                        limit: 5,
+                        status: filterStatus,
+                        q: normalizedQuery,
+                    },
+                });
+
+                if (shouldIgnore) {
+                    return;
+                }
+
+                const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+                setSearchResults(rows);
+            } catch {
+                if (shouldIgnore) {
+                    return;
+                }
+
+                setSearchResults([]);
+            } finally {
+                if (!shouldIgnore) {
+                    setIsSearching(false);
+                }
+            }
+        };
+
+        loadSearchResults();
+
+        return () => {
+            shouldIgnore = true;
+        };
+    }, [debouncedSearchTerm, filterStatus, user, accessToken]);
+
     const pageNumbers = useMemo(
         () => Array.from({ length: pagination.totalPages }, (_, index) => index + 1),
         [pagination.totalPages]
     );
+
+    const shownPostsCount = useMemo(() => {
+        if (pagination.total < 1) {
+            return 0;
+        }
+
+        const cumulativeCount = (pagination.page - 1) * pagination.limit + posts.length;
+        return Math.min(cumulativeCount, pagination.total);
+    }, [pagination.limit, pagination.page, pagination.total, posts.length]);
 
     const showEmptyState = !isLoading && posts.length === 0 && !loadError;
     const showErrorState = !isLoading && !!loadError;
@@ -234,18 +308,24 @@ export default function Posts() {
     return (
         <section className="min-h-screen w-full pt-14 md:pt-0">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-                <div className="relative w-full max-w-md">
-                    <Search
-                        size={16}
-                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
-                    />
-                    <input
-                        type="text"
-                        readOnly
-                        placeholder="Search posts..."
-                        className="w-full rounded-xl border border-outline-variant/30 bg-surface-container px-11 py-3 text-sm text-on-surface outline-none"
-                    />
-                </div>
+                <SearchInputWithResults
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    placeholder="Search posts..."
+                    results={isSearchPending ? [] : searchResults}
+                    isLoading={isSearchPending || isSearching}
+                    loadingLabel="Searching posts..."
+                    emptyLabel="No matching posts found."
+                    wrapperClassName="w-full max-w-md"
+                    renderResult={(post, index) => (
+                        <SearchResultCard
+                            key={`admin-post-search-${post.id || index}`}
+                            title={post?.title}
+                            imageSrc={post?.cover_image}
+                            index={index}
+                        />
+                    )}
+                />
 
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                     <div>
@@ -331,7 +411,7 @@ export default function Posts() {
                     <span>
                         {isLoading
                             ? "Loading publications..."
-                            : `Showing ${posts.length} of ${pagination.total} publications`}
+                            : `Showing ${shownPostsCount} of ${pagination.total} publications`}
                     </span>
 
                     <nav className="flex items-center gap-2" aria-label="Pagination">

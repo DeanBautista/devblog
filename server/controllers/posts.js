@@ -3,6 +3,7 @@ const db = require('../config/db');
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
+const MAX_SEARCH_QUERY_LENGTH = 100;
 
 function normalizeSlug(value) {
   return value
@@ -134,64 +135,74 @@ function normalizeStatusFilter(value) {
   return 'all';
 }
 
+function normalizeSearchQuery(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
+}
+
 async function listPosts(req, res) {
   const requestedPage = toPositiveInteger(req.query.page, DEFAULT_PAGE);
   const rawLimit = toPositiveInteger(req.query.limit, DEFAULT_LIMIT);
   const limit = Math.min(rawLimit, MAX_LIMIT);
   const statusFilter = normalizeStatusFilter(req.query.status);
+  const searchQuery = normalizeSearchQuery(req.query.q);
+  const hasSearchQuery = searchQuery.length > 0;
 
-  const countQuery =
-    statusFilter === 'all'
-      ? 'SELECT COUNT(*) AS total FROM posts'
-      : 'SELECT COUNT(*) AS total FROM posts WHERE LOWER(status) = ?';
-  const countParams = statusFilter === 'all' ? [] : [statusFilter];
+  const whereClauses = [];
+  const whereParams = [];
 
-  const listQuery =
-    statusFilter === 'all'
-      ? `
-        SELECT
-          id,
-          title,
-          status,
-          views,
-          reading_time,
-          published_at,
-          created_at,
-          cover_image
-        FROM posts
-        ORDER BY COALESCE(published_at, created_at) DESC, id DESC
-        LIMIT ? OFFSET ?
-      `
-      : `
-        SELECT
-          id,
-          title,
-          status,
-          views,
-          reading_time,
-          published_at,
-          created_at,
-          cover_image
-        FROM posts
-        WHERE LOWER(status) = ?
-        ORDER BY COALESCE(published_at, created_at) DESC, id DESC
-        LIMIT ? OFFSET ?
-      `;
+  if (statusFilter !== 'all') {
+    whereClauses.push('LOWER(status) = ?');
+    whereParams.push(statusFilter);
+  }
+
+  if (hasSearchQuery) {
+    whereClauses.push('LOWER(title) LIKE ?');
+    whereParams.push(`%${searchQuery.toLowerCase()}%`);
+  }
+
+  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+  const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM posts
+    ${whereClause}
+  `;
+
+  const listQuery = `
+    SELECT
+      id,
+      title,
+      status,
+      views,
+      reading_time,
+      published_at,
+      created_at,
+      cover_image
+    FROM posts
+    ${whereClause}
+    ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+    LIMIT ? OFFSET ?
+  `;
 
   try {
-    const [countRows] = await db.query(countQuery, countParams);
+    const [countRows] = await db.query(countQuery, whereParams);
     const total = countRows[0]?.total ?? 0;
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const page = Math.min(requestedPage, totalPages);
     const offset = (page - 1) * limit;
 
-    const listParams = statusFilter === 'all' ? [limit, offset] : [statusFilter, limit, offset];
+    const listParams = [...whereParams, limit, offset];
     const [rows] = await db.query(listQuery, listParams);
 
     return res.json({
       success: true,
       data: rows,
       activeFilter: statusFilter,
+      activeSearch: searchQuery,
       pagination: {
         page,
         limit,

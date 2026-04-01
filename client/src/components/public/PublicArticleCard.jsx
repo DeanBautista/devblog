@@ -41,7 +41,7 @@ function getInitials(name) {
   return parts.map((part) => part[0]?.toUpperCase() || '').join('');
 }
 
-export default function LatestPostCard({ article, index = 0 }) {
+export default function PublicArticleCard({ article, index = 0, badgeLabel = null }) {
   const coverStyle = FALLBACK_COVER_STYLES[index % FALLBACK_COVER_STYLES.length];
   const title = article?.title || 'Untitled post';
   const excerpt = article?.excerpt || 'No excerpt available for this post yet.';
@@ -67,9 +67,11 @@ export default function LatestPostCard({ article, index = 0 }) {
           </div>
         )}
 
-        <span className="absolute left-4 top-4 rounded-full border border-background/30 bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface">
-          #latest
-        </span>
+        {badgeLabel ? (
+          <span className="absolute left-4 top-4 rounded-full border border-background/30 bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface">
+            {badgeLabel}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col px-5 py-5">

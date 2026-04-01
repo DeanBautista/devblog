@@ -1,5 +1,10 @@
 const db = require('../config/db');
 
+const DEFAULT_ARTICLES_PAGE = 1;
+const DEFAULT_ARTICLES_LIMIT = 6;
+const MAX_ARTICLES_LIMIT = 24;
+const MAX_SEARCH_QUERY_LENGTH = 100;
+
 function normalizeProfile(row) {
   if (!row) {
     return {
@@ -39,6 +44,23 @@ function normalizeArticles(rows) {
       avatar_url: row.author_avatar_url || null,
     },
   }));
+}
+
+function toPositiveInteger(value, fallbackValue) {
+  const parsedValue = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsedValue) || parsedValue < 1) {
+    return fallbackValue;
+  }
+
+  return parsedValue;
+}
+
+function normalizeSearchQuery(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
 }
 
 async function getHomeData(req, res) {
@@ -82,7 +104,6 @@ async function getHomeData(req, res) {
     const [profileRows] = profileResult;
     const [statsRows] = statsResult;
     const [articleRows] = articleResult;
-
     const stats = statsRows[0] || {};
 
     return res.json({
@@ -108,6 +129,80 @@ async function getHomeData(req, res) {
   }
 }
 
+async function listPublicArticles(req, res) {
+  const requestedPage = toPositiveInteger(req.query.page, DEFAULT_ARTICLES_PAGE);
+  const rawLimit = toPositiveInteger(req.query.limit, DEFAULT_ARTICLES_LIMIT);
+  const limit = Math.min(rawLimit, MAX_ARTICLES_LIMIT);
+  const searchQuery = normalizeSearchQuery(req.query.q);
+
+  const whereClauses = [`LOWER(p.status) = 'published'`];
+  const whereParams = [];
+
+  if (searchQuery) {
+    whereClauses.push('LOWER(p.title) LIKE ?');
+    whereParams.push(`%${searchQuery.toLowerCase()}%`);
+  }
+
+  const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
+
+  try {
+    const [countRows] = await db.query(
+      `SELECT COUNT(*) AS total
+       FROM posts p
+       ${whereClause}`,
+      whereParams
+    );
+
+    const total = Number.parseInt(countRows[0]?.total, 10) || 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.min(requestedPage, totalPages);
+    const offset = (page - 1) * limit;
+
+    const [rows] = await db.query(
+      `SELECT
+        p.id,
+        p.title,
+        p.slug,
+        p.excerpt,
+        p.reading_time,
+        COALESCE(p.views, 0) AS views,
+        p.published_at,
+        p.created_at,
+        p.cover_image,
+        u.id AS author_id,
+        u.name AS author_name,
+        u.avatar_url AS author_avatar_url
+      FROM posts p
+      LEFT JOIN users u ON u.id = p.user_id
+      ${whereClause}
+      ORDER BY COALESCE(p.published_at, p.created_at) DESC, p.id DESC
+      LIMIT ? OFFSET ?`,
+      [...whereParams, limit, offset]
+    );
+
+    return res.json({
+      success: true,
+      data: normalizeArticles(rows),
+      activeSearch: searchQuery,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load public articles',
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   getHomeData,
+  listPublicArticles,
 };
