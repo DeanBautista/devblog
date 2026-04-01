@@ -8,6 +8,7 @@ export const POST_EDITOR_DEFAULTS = {
     postExcerpt: "",
     editorContent: "",
     readTimeMinutes: "12",
+    selectedTagIds: [],
     editorView: EDITOR_VIEWS.WRITE,
 };
 
@@ -20,6 +21,27 @@ const usePostEditorStore = create(
             setPostExcerpt: (postExcerpt) => set({ postExcerpt }),
             setEditorContent: (editorContent) => set({ editorContent }),
             setReadTimeMinutes: (readTimeMinutes) => set({ readTimeMinutes }),
+            setSelectedTagIds: (selectedTagIds) => set({ selectedTagIds }),
+            toggleSelectedTagId: (tagId) =>
+                set((state) => {
+                    const parsedTagId = Number.parseInt(tagId, 10);
+
+                    if (!Number.isInteger(parsedTagId) || parsedTagId < 1) {
+                        return state;
+                    }
+
+                    const isSelected = state.selectedTagIds.includes(parsedTagId);
+
+                    if (isSelected) {
+                        return {
+                            selectedTagIds: state.selectedTagIds.filter((id) => id !== parsedTagId),
+                        };
+                    }
+
+                    return {
+                        selectedTagIds: [...state.selectedTagIds, parsedTagId],
+                    };
+                }),
             setEditorView: (editorView) => set({ editorView }),
             resetDraft: () => set({ ...POST_EDITOR_DEFAULTS }),
         }),
@@ -32,6 +54,7 @@ const usePostEditorStore = create(
                 postExcerpt: state.postExcerpt,
                 editorContent: state.editorContent,
                 readTimeMinutes: state.readTimeMinutes,
+                selectedTagIds: state.selectedTagIds,
                 editorView: state.editorView,
             }),
         }

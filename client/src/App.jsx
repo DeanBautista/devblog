@@ -5,6 +5,7 @@ import Login from "./pages/admin/Login"
 import Dashboard from "./pages/admin/Dashboard"
 import PostEditor from "./pages/admin/PostEditor"
 import Posts from "./pages/admin/Posts"
+import Tags from "./pages/admin/Tags"
 import Home from "./pages/public/Home"
 import Article from "./pages/public/Article"
 import About from "./pages/public/About"
@@ -22,7 +23,7 @@ function App() {
 
   useEffect(() => {
     init();
-  }, []);
+  }, [init]);
 
   if (loading) return null;
 
@@ -66,6 +67,14 @@ function App() {
           <ProtectedRoute>
             <SideBar page="newposts">
               <PostEditor />
+            </SideBar>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/tags" element={
+          <ProtectedRoute>
+            <SideBar page="tags">
+              <Tags />
             </SideBar>
           </ProtectedRoute>
         } />

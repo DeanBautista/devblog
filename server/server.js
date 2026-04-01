@@ -3,6 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
+const tagsRoutes = require('./routes/tags');
 const publicRoutes = require('./routes/public');
 const db = require('./config/db');
 
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postsRoutes);
+app.use('/api/tags', tagsRoutes);
 app.use('/api/public', publicRoutes);
 
 // Routes

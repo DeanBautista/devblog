@@ -65,7 +65,17 @@ function normalizeSearchQuery(value) {
 
 async function getHomeData(req, res) {
   try {
-    const [profileResult, statsResult, articleResult] = await Promise.all([
+    const tagsInPublishedPostsPromise = db
+      .query(
+        `SELECT COUNT(DISTINCT pt.tag_id) AS total_tags
+         FROM post_tags pt
+         INNER JOIN posts p ON p.id = pt.post_id
+         WHERE LOWER(p.status) = 'published'`
+      )
+      .then(([rows]) => Number.parseInt(rows[0]?.total_tags, 10) || 0)
+      .catch(() => 0);
+
+    const [profileResult, statsResult, articleResult, totalTags] = await Promise.all([
       db.query(
         `SELECT id, name, avatar_url, bio, created_at
          FROM users
@@ -99,6 +109,7 @@ async function getHomeData(req, res) {
         ORDER BY COALESCE(p.published_at, p.created_at) DESC, p.id DESC
          LIMIT 3`
       ),
+      tagsInPublishedPostsPromise,
     ]);
 
     const [profileRows] = profileResult;
@@ -116,7 +127,7 @@ async function getHomeData(req, res) {
       stats: {
         articles: Number(stats.published_articles) || 0,
         views: Number(stats.total_views) || 0,
-        tags: 3,
+        tags: totalTags,
       },
       featuredArticles: normalizeArticles(articleRows),
     });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, FilePlus, User, Settings, LogOut, Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LayoutDashboard, FileText, FilePlus, Tag, User, Settings, LogOut, Menu, X } from "lucide-react";
 import useAuthStore from "../stores/authStore";
 import usePostEditorStore, { POST_EDITOR_DEFAULTS } from "../stores/postEditorStore";
 
@@ -12,6 +12,7 @@ export default function SideBar({ children, page }) {
   const postExcerpt = usePostEditorStore((state) => state.postExcerpt);
   const editorContent = usePostEditorStore((state) => state.editorContent);
   const readTimeMinutes = usePostEditorStore((state) => state.readTimeMinutes);
+  const selectedTagIds = usePostEditorStore((state) => state.selectedTagIds);
 
   const navigate = useNavigate();
 
@@ -21,7 +22,8 @@ export default function SideBar({ children, page }) {
     postSlug.trim().length > 0 ||
     postExcerpt.trim().length > 0 ||
     editorContent.trim().length > 0 ||
-    readTimeMinutes.trim() !== POST_EDITOR_DEFAULTS.readTimeMinutes;
+    readTimeMinutes.trim() !== POST_EDITOR_DEFAULTS.readTimeMinutes ||
+    selectedTagIds.length > 0;
 
   useEffect(() => {
     const handleResize = () => {
@@ -103,6 +105,14 @@ export default function SideBar({ children, page }) {
             >
               <FilePlus size={20} className="text-white shrink-0" />
               New Posts
+            </span>
+            <span
+                onClick={() => {navigate("/admin/tags")}}
+                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
+                ${page === "tags" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
+            >
+              <Tag size={20} className="text-white shrink-0" />
+              Tags
             </span>
           </div>
         </div>

@@ -1,18 +1,48 @@
 const db = require('../config/db');
+const { normalizeSlug } = require('../utils/slug');
+const { withTransaction } = require('../utils/withTransaction');
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
 const MAX_SEARCH_QUERY_LENGTH = 100;
+const MAX_TAG_IDS = 25;
 
-function normalizeSlug(value) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+function normalizeTagIds(value) {
+  if (value == null) {
+    return {
+      tagIds: [],
+      hasInvalidValue: false,
+      exceedsLimit: false,
+    };
+  }
+
+  if (!Array.isArray(value)) {
+    return {
+      tagIds: [],
+      hasInvalidValue: true,
+      exceedsLimit: false,
+    };
+  }
+
+  const parsedTagIds = value.map((tagId) => Number.parseInt(tagId, 10));
+  const hasInvalidValue = parsedTagIds.some((tagId) => !Number.isInteger(tagId) || tagId < 1);
+
+  if (hasInvalidValue) {
+    return {
+      tagIds: [],
+      hasInvalidValue: true,
+      exceedsLimit: false,
+    };
+  }
+
+  const uniqueTagIds = Array.from(new Set(parsedTagIds));
+
+  return {
+    tagIds: uniqueTagIds,
+    hasInvalidValue: false,
+    exceedsLimit: uniqueTagIds.length > MAX_TAG_IDS,
+  };
 }
 
 async function submitPost(req, res) {
@@ -23,6 +53,8 @@ async function submitPost(req, res) {
   const slugInput = typeof req.body.slug === 'string' ? req.body.slug : '';
   const slug = normalizeSlug(slugInput) || normalizeSlug(title);
   const readingTime = Number.parseInt(req.body.reading_time, 10);
+  const normalizedTagIds = normalizeTagIds(req.body.tag_ids);
+  const { tagIds } = normalizedTagIds;
 
   const missingFields = [];
 
@@ -46,7 +78,33 @@ async function submitPost(req, res) {
     });
   }
 
+  if (normalizedTagIds.hasInvalidValue) {
+    return res.status(400).json({
+      success: false,
+      message: 'tag_ids must be an array of positive integer ids',
+    });
+  }
+
+  if (normalizedTagIds.exceedsLimit) {
+    return res.status(400).json({
+      success: false,
+      message: `A post can have up to ${MAX_TAG_IDS} tags`,
+    });
+  }
+
   try {
+    if (tagIds.length > 0) {
+      const placeholders = tagIds.map(() => '?').join(', ');
+      const [tagRows] = await db.query(`SELECT id FROM tags WHERE id IN (${placeholders})`, tagIds);
+
+      if (tagRows.length !== tagIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'One or more tag_ids are invalid',
+        });
+      }
+    }
+
     const [existingRows] = await db.query('SELECT id FROM posts WHERE slug = ? LIMIT 1', [slug]);
 
     if (existingRows.length > 0) {
@@ -56,36 +114,54 @@ async function submitPost(req, res) {
       });
     }
 
-    const [result] = await db.query(
-      `INSERT INTO posts (
-        user_id,
-        title,
-        slug,
-        excerpt,
-        content,
-        cover_image,
-        status,
-        reading_time,
-        published_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        title,
-        slug,
-        excerpt,
-        content,
-        null,
-        'published',
-        readingTime,
-        new Date(),
-      ]
-    );
+    const createdPostId = await withTransaction(db, async (connection) => {
+      const [insertResult] = await connection.query(
+        `INSERT INTO posts (
+          user_id,
+          title,
+          slug,
+          excerpt,
+          content,
+          cover_image,
+          status,
+          reading_time,
+          published_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userId,
+          title,
+          slug,
+          excerpt,
+          content,
+          null,
+          'published',
+          readingTime,
+          new Date(),
+        ]
+      );
+
+      if (tagIds.length > 0) {
+        const valuePlaceholders = tagIds.map(() => '(?, ?)').join(', ');
+        const relationParams = [];
+
+        tagIds.forEach((tagId) => {
+          relationParams.push(insertResult.insertId, tagId);
+        });
+
+        await connection.query(
+          `INSERT INTO post_tags (post_id, tag_id) VALUES ${valuePlaceholders}`,
+          relationParams
+        );
+      }
+
+      return insertResult.insertId;
+    });
 
     return res.status(201).json({
       success: true,
       message: 'Post published successfully.',
       post: {
-        id: result.insertId,
+        id: createdPostId,
         user_id: userId,
         title,
         slug,
@@ -94,6 +170,7 @@ async function submitPost(req, res) {
         cover_image: null,
         status: 'published',
         reading_time: readingTime,
+        tag_ids: tagIds,
       },
     });
   } catch (error) {
