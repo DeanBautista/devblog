@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { renderInlineMarkdown, stripHeadingSuffix } from "./postEditorHelper";
 import { INLINE_MARKDOWN_TOKEN_REGEX, previewHeadingClassByLevel, QUOTED_HEADING_REGEX, STATIC_PREVIEW_AUTHOR } from "./postEditorConstants";
-import { parseDocumentBlocks } from "../../utils/postDocumentTransformer";
+import { parseDocumentBlocks } from "../../utils/document-transformer";
 
 function DocumentHeading ({ level, children, className = "" }) {
     const headingLevel = Math.max(1, Math.min(6, level || 2));

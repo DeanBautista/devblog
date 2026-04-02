@@ -33,25 +33,7 @@ export default function Login() {
   }
 
   return (
-    <>
-      <style>{`
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20%       { transform: translateX(-6px); }
-          40%       { transform: translateX(6px); }
-          60%       { transform: translateX(-4px); }
-          80%       { transform: translateX(4px); }
-        }
-        .error-banner {
-          animation: slideDown 0.3s ease-out, shake 0.4s ease-out 0.15s;
-        }
-      `}</style>
-
-      <div className="min-h-screen w-full flex items-center justify-center bg-[var(--color-background)] sm:bg-[var(--color-background)]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[var(--color-background)] sm:bg-[var(--color-background)]">
         <div
           className="
             w-full h-screen sm:h-auto
@@ -107,7 +89,7 @@ export default function Login() {
           {/* ── Login Failed Banner ── */}
           {error && (
             <div
-              className="error-banner relative z-10 w-full flex items-start gap-3 rounded-2xl px-4 py-3.5"
+              className="login-error-banner relative z-10 w-full flex items-start gap-3 rounded-2xl px-4 py-3.5"
               style={{
                 background: "rgba(255, 107, 107, 0.10)",
                 border: "1px solid rgba(255, 107, 107, 0.35)",
@@ -307,6 +289,5 @@ export default function Login() {
           </button>
         </div>
       </div>
-    </>
   );
 }
