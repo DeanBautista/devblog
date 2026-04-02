@@ -1,11 +1,17 @@
 const db = require('../config/db');
 const { normalizeSlug } = require('../utils/slug');
 const { withTransaction } = require('../utils/withTransaction');
+const {
+  isCloudinaryConfigured,
+  uploadCoverImageBuffer,
+  deleteUserOwnedCoverByUrl,
+} = require('../utils/cloudinary');
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
 const MAX_SEARCH_QUERY_LENGTH = 100;
+const MAX_COVER_IMAGE_URL_LENGTH = 2048;
 const MIN_TAG_IDS = 1;
 const MAX_TAG_IDS = 2;
 const POST_STATUS_PUBLISHED = 'published';
@@ -105,7 +111,59 @@ function collectMissingFields({ userId, isPublishing, title, slug, excerpt, cont
   return missingFields;
 }
 
-function normalizePostPayload(body, fallbackSlug = '') {
+function normalizeCoverImage(value) {
+  if (value == null || value === '') {
+    return {
+      coverImage: null,
+      hasInvalidValue: false,
+    };
+  }
+
+  if (typeof value !== 'string') {
+    return {
+      coverImage: null,
+      hasInvalidValue: true,
+    };
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return {
+      coverImage: null,
+      hasInvalidValue: false,
+    };
+  }
+
+  if (trimmedValue.length > MAX_COVER_IMAGE_URL_LENGTH) {
+    return {
+      coverImage: null,
+      hasInvalidValue: true,
+    };
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return {
+        coverImage: null,
+        hasInvalidValue: true,
+      };
+    }
+  } catch {
+    return {
+      coverImage: null,
+      hasInvalidValue: true,
+    };
+  }
+
+  return {
+    coverImage: trimmedValue,
+    hasInvalidValue: false,
+  };
+}
+
+function normalizePostPayload(body, fallbackSlug = '', fallbackCoverImage = null) {
   const submissionStatus = normalizeSubmissionStatus(body?.status);
   const isPublishing = submissionStatus === POST_STATUS_PUBLISHED;
   const title = typeof body?.title === 'string' ? body.title.trim() : '';
@@ -125,6 +183,10 @@ function normalizePostPayload(body, fallbackSlug = '') {
       : 1;
 
   const normalizedTagIds = normalizeTagIds(body?.tag_ids);
+  const hasCoverImageField = Object.prototype.hasOwnProperty.call(body ?? {}, 'cover_image');
+  const normalizedCoverImage = normalizeCoverImage(
+    hasCoverImageField ? body?.cover_image : fallbackCoverImage
+  );
 
   return {
     submissionStatus,
@@ -136,6 +198,22 @@ function normalizePostPayload(body, fallbackSlug = '') {
     normalizedReadingTime,
     normalizedTagIds,
     tagIds: normalizedTagIds.tagIds,
+    coverImage: normalizedCoverImage.coverImage,
+    hasInvalidCoverImage: normalizedCoverImage.hasInvalidValue,
+  };
+}
+
+function extractCloudinaryErrorDetails(error) {
+  const rawHttpCode = Number.parseInt(error?.error?.http_code, 10);
+  const httpCode = Number.isInteger(rawHttpCode) ? rawHttpCode : null;
+  const message =
+    error?.error?.message ||
+    error?.message ||
+    'Cloudinary request failed unexpectedly.';
+
+  return {
+    httpCode,
+    message,
   };
 }
 
@@ -312,6 +390,121 @@ async function getPostBySlug(req, res) {
   }
 }
 
+async function uploadPostCoverImage(req, res) {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized',
+    });
+  }
+
+  if (!isCloudinaryConfigured()) {
+    return res.status(500).json({
+      success: false,
+      message: 'Cloudinary is not configured on the server.',
+    });
+  }
+
+  const imageFile = req.file;
+
+  if (!imageFile || !Buffer.isBuffer(imageFile.buffer) || imageFile.buffer.length < 1) {
+    return res.status(400).json({
+      success: false,
+      message: 'Cover image file is required.',
+    });
+  }
+
+  try {
+    const uploadedImage = await uploadCoverImageBuffer({
+      userId,
+      buffer: imageFile.buffer,
+    });
+
+    const secureUrl =
+      typeof uploadedImage?.secure_url === 'string' && uploadedImage.secure_url.trim()
+        ? uploadedImage.secure_url.trim()
+        : null;
+
+    if (!secureUrl) {
+      return res.status(500).json({
+        success: false,
+        message: 'Cloudinary upload returned an invalid image URL.',
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Cover image uploaded successfully.',
+      data: {
+        url: secureUrl,
+        public_id: uploadedImage?.public_id ?? null,
+        width: uploadedImage?.width ?? null,
+        height: uploadedImage?.height ?? null,
+        bytes: uploadedImage?.bytes ?? null,
+      },
+    });
+  } catch (error) {
+    const cloudinaryError = extractCloudinaryErrorDetails(error);
+
+    const responseMessage =
+      cloudinaryError.httpCode === 401
+        ? `Cloudinary credentials are invalid: ${cloudinaryError.message}`
+        : `Failed to upload cover image: ${cloudinaryError.message}`;
+
+    return res.status(500).json({
+      success: false,
+      message: responseMessage,
+      error: cloudinaryError.message,
+    });
+  }
+}
+
+async function deletePostCoverImage(req, res) {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized',
+    });
+  }
+
+  const imageUrl =
+    typeof req.body?.cover_image === 'string' ? req.body.cover_image.trim() : '';
+
+  if (!imageUrl) {
+    return res.json({
+      success: true,
+      cleaned: false,
+      message: 'No cover image URL provided for cleanup.',
+    });
+  }
+
+  try {
+    const cleanupResult = await deleteUserOwnedCoverByUrl({ imageUrl, userId });
+
+    return res.json({
+      success: true,
+      cleaned: cleanupResult.deleted,
+      result: cleanupResult.result,
+      message: cleanupResult.deleted
+        ? 'Cover image cleanup completed.'
+        : 'Cover image cleanup skipped.',
+    });
+  } catch (error) {
+    const cloudinaryError = extractCloudinaryErrorDetails(error);
+
+    return res.status(500).json({
+      success: false,
+      cleaned: false,
+      message: `Failed to cleanup cover image: ${cloudinaryError.message}`,
+      error: cloudinaryError.message,
+    });
+  }
+}
+
 async function submitPost(req, res) {
   const userId = req.user?.sub;
   const {
@@ -324,6 +517,8 @@ async function submitPost(req, res) {
     normalizedReadingTime,
     normalizedTagIds,
     tagIds,
+    coverImage,
+    hasInvalidCoverImage,
   } = normalizePostPayload(req.body);
 
   const missingFields = collectMissingFields({
@@ -346,6 +541,13 @@ async function submitPost(req, res) {
     return res.status(400).json({
       success: false,
       message: 'reading_time must be a positive integer',
+    });
+  }
+
+  if (hasInvalidCoverImage) {
+    return res.status(400).json({
+      success: false,
+      message: 'cover_image must be a valid HTTP(S) URL or null',
     });
   }
 
@@ -408,7 +610,7 @@ async function submitPost(req, res) {
           slug,
           excerpt,
           content,
-          null,
+          coverImage,
           submissionStatus,
           normalizedReadingTime,
           isPublishing ? new Date() : null,
@@ -446,7 +648,7 @@ async function submitPost(req, res) {
         slug,
         excerpt,
         content,
-        cover_image: null,
+        cover_image: coverImage,
         status: submissionStatus,
         reading_time: normalizedReadingTime,
         tag_ids: tagIds,
@@ -488,7 +690,7 @@ async function updatePost(req, res) {
 
   try {
     const [rows] = await db.query(
-      `SELECT id, user_id, slug, published_at
+      `SELECT id, user_id, slug, published_at, cover_image
        FROM posts
        WHERE id = ?
        LIMIT 1`,
@@ -521,7 +723,9 @@ async function updatePost(req, res) {
       normalizedReadingTime,
       normalizedTagIds,
       tagIds,
-    } = normalizePostPayload(req.body, existingPost.slug);
+      coverImage,
+      hasInvalidCoverImage,
+    } = normalizePostPayload(req.body, existingPost.slug, existingPost.cover_image ?? null);
 
     const missingFields = collectMissingFields({
       userId,
@@ -543,6 +747,13 @@ async function updatePost(req, res) {
       return res.status(400).json({
         success: false,
         message: 'reading_time must be a positive integer',
+      });
+    }
+
+    if (hasInvalidCoverImage) {
+      return res.status(400).json({
+        success: false,
+        message: 'cover_image must be a valid HTTP(S) URL or null',
       });
     }
 
@@ -588,6 +799,7 @@ async function updatePost(req, res) {
     const nextPublishedAt = isPublishing
       ? existingPost.published_at || new Date()
       : existingPost.published_at;
+    const previousCoverImage = existingPost.cover_image ?? null;
 
     const updatedPost = await withTransaction(db, async (connection) => {
       await connection.query(
@@ -608,7 +820,7 @@ async function updatePost(req, res) {
           slug,
           excerpt,
           content,
-          null,
+          coverImage,
           submissionStatus,
           normalizedReadingTime,
           nextPublishedAt,
@@ -640,6 +852,13 @@ async function updatePost(req, res) {
       return updatedRows[0] ?? null;
     });
 
+    if (previousCoverImage && previousCoverImage !== coverImage) {
+      void deleteUserOwnedCoverByUrl({
+        imageUrl: previousCoverImage,
+        userId,
+      }).catch(() => null);
+    }
+
     const successMessage = isPublishing
       ? 'Post updated and published successfully.'
       : 'Post draft updated successfully.';
@@ -654,7 +873,7 @@ async function updatePost(req, res) {
         slug,
         excerpt,
         content,
-        cover_image: null,
+        cover_image: coverImage,
         status: submissionStatus,
         reading_time: normalizedReadingTime,
         tag_ids: tagIds,
@@ -917,6 +1136,8 @@ async function deletePost(req, res) {
 
 module.exports = {
   submitPost,
+  uploadPostCoverImage,
+  deletePostCoverImage,
   getPostById,
   getPostBySlug,
   updatePost,

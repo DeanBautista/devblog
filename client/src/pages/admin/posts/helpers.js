@@ -78,10 +78,15 @@ export function mapPostForCard(postRow, fallbackIndex) {
     const parsedViews = Number.parseInt(postRow?.views, 10);
     const { mobile, desktop } = formatPostDates(postRow?.published_at ?? postRow?.created_at);
     const rawSlug = typeof postRow?.slug === "string" ? postRow.slug.trim() : "";
+    const coverImage =
+        typeof postRow?.cover_image === "string" && postRow.cover_image.trim()
+            ? postRow.cover_image.trim()
+            : null;
 
     return {
         id: postId,
         slug: rawSlug,
+        coverImage,
         coverVariant: COVER_VARIANTS[coverIndex],
         title: postRow?.title?.trim() || "Untitled Post",
         readTime: mapReadTime(postRow?.reading_time),

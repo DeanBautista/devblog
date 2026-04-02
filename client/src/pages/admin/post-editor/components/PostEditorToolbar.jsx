@@ -6,9 +6,10 @@ export default function PostEditorToolbar({
     onDraft,
     onPublish,
     isSubmitting,
+    isCoverUploading = false,
     isPostLoading = false,
 }) {
-    const isActionDisabled = isSubmitting || isPostLoading;
+    const isActionDisabled = isSubmitting || isPostLoading || isCoverUploading;
 
     const handleEditorViewChange = (nextView) => {
         if (isPostLoading) {
@@ -55,7 +56,7 @@ export default function PostEditorToolbar({
                         className="px-5 py-2 rounded-full border"
                         disabled={isActionDisabled}
                     >
-                        {isPostLoading ? "Loading..." : "Draft"}
+                        {isPostLoading ? "Loading..." : isCoverUploading ? "Uploading cover..." : "Draft"}
                     </button>
                     <button
                         onClick={onPublish}
@@ -64,7 +65,13 @@ export default function PostEditorToolbar({
                             isActionDisabled ? "opacity-70 cursor-not-allowed" : ""
                         }`}
                     >
-                        {isPostLoading ? "Loading..." : isSubmitting ? "Publishing..." : "Publish"}
+                        {isPostLoading
+                            ? "Loading..."
+                            : isCoverUploading
+                            ? "Uploading cover..."
+                            : isSubmitting
+                            ? "Publishing..."
+                            : "Publish"}
                     </button>
                 </div>
             )}
