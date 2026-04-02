@@ -187,9 +187,23 @@ export default function usePostEditorForm() {
         return normalizeSlug(postSlug) || normalizeSlug(postTitle);
     };
 
+    const buildSubmissionPayload = (status) => {
+        return {
+            title: postTitle.trim(),
+            slug: getResolvedSlug(),
+            excerpt: postExcerpt.trim(),
+            content: editorContent.trim(),
+            reading_time: Number.parseInt(normalizedReadTimeMinutes, 10),
+            cover_image: null,
+            tag_ids: selectedTagIds,
+            status,
+        };
+    };
+
     const resetFormState = () => {
         resetDraft();
         setPreview(null);
+        setTagSearchTerm("");
         setValidationErrors([]);
         setIsExcerptModalOpen(false);
 
@@ -240,13 +254,8 @@ export default function usePostEditorForm() {
             setSubmitError("");
 
             const payload = {
-                title: postTitle.trim(),
+                ...buildSubmissionPayload("published"),
                 slug: resolvedSlug,
-                excerpt: postExcerpt.trim(),
-                content: editorContent.trim(),
-                reading_time: Number.parseInt(normalizedReadTimeMinutes, 10),
-                cover_image: null,
-                tag_ids: selectedTagIds,
             };
 
             const response = await api.post("/api/posts/submitpost", payload);
@@ -259,6 +268,32 @@ export default function usePostEditorForm() {
                 error?.response?.data?.message ||
                 error?.response?.data?.error ||
                 "Unable to publish post right now. Please try again.";
+
+            setSubmitError(message);
+            setIsErrorModalOpen(true);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDraft = async () => {
+        if (isSubmitting) return;
+
+        try {
+            setIsSubmitting(true);
+            setSubmitError("");
+
+            const payload = buildSubmissionPayload("draft");
+            const response = await api.post("/api/posts/submitpost", payload);
+
+            resetFormState();
+            setSuccessMessage(response.data?.message || "Post draft saved successfully.");
+            setIsSuccessModalOpen(true);
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                "Unable to save draft right now. Please try again.";
 
             setSubmitError(message);
             setIsErrorModalOpen(true);
@@ -350,6 +385,7 @@ export default function usePostEditorForm() {
 
         // Handlers
         handleImageChange,
+        handleDraft,
         handlePublish,
         handleConfirmPublish,
         handleReadTimeChange,

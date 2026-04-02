@@ -8,6 +8,22 @@ const MAX_LIMIT = 50;
 const MAX_SEARCH_QUERY_LENGTH = 100;
 const MIN_TAG_IDS = 1;
 const MAX_TAG_IDS = 2;
+const POST_STATUS_PUBLISHED = 'published';
+const POST_STATUS_DRAFT = 'draft';
+
+function normalizeSubmissionStatus(value) {
+  const normalizedValue = String(value ?? POST_STATUS_PUBLISHED).trim().toLowerCase();
+  return normalizedValue === POST_STATUS_DRAFT ? POST_STATUS_DRAFT : POST_STATUS_PUBLISHED;
+}
+
+function buildDraftSlug() {
+  const timestamp = Date.now();
+  const randomSuffix = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, '0');
+
+  return `draft-${timestamp}-${randomSuffix}`;
+}
 
 function normalizeTagIds(value) {
   if (value == null) {
@@ -48,22 +64,34 @@ function normalizeTagIds(value) {
 
 async function submitPost(req, res) {
   const userId = req.user?.sub;
+  const submissionStatus = normalizeSubmissionStatus(req.body.status);
+  const isPublishing = submissionStatus === POST_STATUS_PUBLISHED;
   const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
   const excerpt = typeof req.body.excerpt === 'string' ? req.body.excerpt.trim() : '';
   const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
   const slugInput = typeof req.body.slug === 'string' ? req.body.slug : '';
-  const slug = normalizeSlug(slugInput) || normalizeSlug(title);
+  const resolvedSlug = normalizeSlug(slugInput) || normalizeSlug(title);
+  const slug = resolvedSlug || (isPublishing ? '' : buildDraftSlug());
   const readingTime = Number.parseInt(req.body.reading_time, 10);
+  const normalizedReadingTime =
+    Number.isInteger(readingTime) && readingTime > 0
+      ? readingTime
+      : isPublishing
+      ? Number.NaN
+      : 1;
   const normalizedTagIds = normalizeTagIds(req.body.tag_ids);
   const { tagIds } = normalizedTagIds;
 
   const missingFields = [];
 
   if (!userId) missingFields.push('user');
-  if (!title) missingFields.push('title');
-  if (!slug) missingFields.push('slug');
-  if (!excerpt) missingFields.push('excerpt');
-  if (!content) missingFields.push('content');
+
+  if (isPublishing) {
+    if (!title) missingFields.push('title');
+    if (!slug) missingFields.push('slug');
+    if (!excerpt) missingFields.push('excerpt');
+    if (!content) missingFields.push('content');
+  }
 
   if (missingFields.length > 0) {
     return res.status(400).json({
@@ -72,7 +100,7 @@ async function submitPost(req, res) {
     });
   }
 
-  if (!Number.isInteger(readingTime) || readingTime <= 0) {
+  if (!Number.isInteger(normalizedReadingTime) || normalizedReadingTime <= 0) {
     return res.status(400).json({
       success: false,
       message: 'reading_time must be a positive integer',
@@ -86,7 +114,7 @@ async function submitPost(req, res) {
     });
   }
 
-  if (tagIds.length < MIN_TAG_IDS) {
+  if (isPublishing && tagIds.length < MIN_TAG_IDS) {
     return res.status(400).json({
       success: false,
       message: `A post must have at least ${MIN_TAG_IDS} tag`,
@@ -142,9 +170,9 @@ async function submitPost(req, res) {
           excerpt,
           content,
           null,
-          'published',
-          readingTime,
-          new Date(),
+          submissionStatus,
+          normalizedReadingTime,
+          isPublishing ? new Date() : null,
         ]
       );
 
@@ -165,9 +193,13 @@ async function submitPost(req, res) {
       return insertResult.insertId;
     });
 
+    const successMessage = isPublishing
+      ? 'Post published successfully.'
+      : 'Post draft saved successfully.';
+
     return res.status(201).json({
       success: true,
-      message: 'Post published successfully.',
+      message: successMessage,
       post: {
         id: createdPostId,
         user_id: userId,
@@ -176,8 +208,8 @@ async function submitPost(req, res) {
         excerpt,
         content,
         cover_image: null,
-        status: 'published',
-        reading_time: readingTime,
+        status: submissionStatus,
+        reading_time: normalizedReadingTime,
         tag_ids: tagIds,
       },
     });
@@ -191,7 +223,7 @@ async function submitPost(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to publish post',
+      message: isPublishing ? 'Failed to publish post' : 'Failed to save draft post',
       error: error.message,
     });
   }
