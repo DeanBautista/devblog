@@ -1,4 +1,5 @@
-import { ArrowRight, CalendarDays, Clock3, Eye, Share2, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Clock3, Eye, Share2, ThumbsUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import DocumentRenderer from '../../../components/document_renderer/DocumentRenderer';
 import useArticleDetail from './hooks/useArticleDetail';
 
@@ -51,11 +52,29 @@ function ArticleDetailSkeleton() {
 }
 
 export default function ArticleDetail() {
+  const navigate = useNavigate();
   const { article, isLoading, loadError, isNotFound } = useArticleDetail();
+
+  const handleBackClick = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/article');
+  };
 
   if (isLoading) {
     return (
       <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
+        <button
+          type="button"
+          onClick={handleBackClick}
+          className="hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={16} aria-hidden="true" />
+        </button>
         <ArticleDetailSkeleton />
       </section>
     );
@@ -64,6 +83,14 @@ export default function ArticleDetail() {
   if (!article) {
     return (
       <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
+        <button
+          type="button"
+          onClick={handleBackClick}
+          className="hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={16} aria-hidden="true" />
+        </button>
         <article className="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-10 text-center sm:px-8">
           <h1 className="text-2xl font-semibold text-on-surface">
             {isNotFound ? 'Post not found' : 'Unable to load post'}
@@ -98,6 +125,14 @@ export default function ArticleDetail() {
               <CoverFallback title={article.title} />
             </div>
           )}
+          <button
+            type="button"
+            onClick={handleBackClick}
+            className="absolute top-2 left-2 hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+          </button>
         </div>
 
         {article.tags.length > 0 ? (
@@ -150,11 +185,7 @@ export default function ArticleDetail() {
           </span>
         </div>
 
-        <p className="hero-reveal hero-reveal-delay-4 mt-8 max-w-4xl text-base leading-relaxed text-on-surface-variant md:text-lg">
-          {article.excerpt}
-        </p>
-
-        <div className="hero-reveal hero-reveal-delay-5 mt-8 border-t border-outline-variant/30 pt-2">
+        <div className="hero-reveal hero-reveal-delay-5 mt-2 pt-0">
           {hasContent ? (
             <DocumentRenderer value={article.content} />
           ) : (

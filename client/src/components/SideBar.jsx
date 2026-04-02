@@ -4,6 +4,9 @@ import { LayoutDashboard, FileText, FilePlus, Tag, User, Settings, LogOut, Menu,
 import useAuthStore from "../stores/authStore";
 import usePostEditorStore, { POST_EDITOR_DEFAULTS } from "../stores/postEditorStore";
 
+const RELOAD_DRAFT_RESET_FLAG_KEY = "post-editor-clear-on-reload";
+const POST_EDITOR_DRAFT_STORAGE_KEY = "post-editor-draft";
+
 export default function SideBar({ children, page }) {
 
   const { logout, user } = useAuthStore();
@@ -17,7 +20,7 @@ export default function SideBar({ children, page }) {
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
-  const hasUnsavedPostDraft =
+  const hasUnsavedCreateDraft =
     postTitle.trim().length > 0 ||
     postSlug.trim().length > 0 ||
     postExcerpt.trim().length > 0 ||
@@ -34,7 +37,7 @@ export default function SideBar({ children, page }) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !hasUnsavedPostDraft) {
+    if (typeof window === "undefined" || !hasUnsavedCreateDraft) {
       return;
     }
 
@@ -43,12 +46,57 @@ export default function SideBar({ children, page }) {
       event.returnValue = "You have unsaved changes in New Post. Are you sure you want to leave?";
     };
 
+    const handlePageHide = () => {
+      sessionStorage.setItem(RELOAD_DRAFT_RESET_FLAG_KEY, "1");
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [hasUnsavedPostDraft]);
+  }, [hasUnsavedCreateDraft]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const shouldClearDraft = sessionStorage.getItem(RELOAD_DRAFT_RESET_FLAG_KEY) === "1";
+
+    if (!shouldClearDraft) {
+      return;
+    }
+
+    const navigationEntry = window.performance.getEntriesByType("navigation")?.[0];
+    const isReloadNavigation = navigationEntry?.type === "reload";
+
+    if (isReloadNavigation) {
+      sessionStorage.removeItem(POST_EDITOR_DRAFT_STORAGE_KEY);
+      usePostEditorStore.getState().resetDraft();
+    }
+
+    sessionStorage.removeItem(RELOAD_DRAFT_RESET_FLAG_KEY);
+  }, []);
+
+  const handleLogout = () => {
+    if (hasUnsavedCreateDraft) {
+      const shouldSignOut = window.confirm(
+        "You have unsaved changes in New Post. Are you sure you want to sign out?"
+      );
+
+      if (!shouldSignOut) {
+        return;
+      }
+    }
+
+    sessionStorage.removeItem(RELOAD_DRAFT_RESET_FLAG_KEY);
+    sessionStorage.removeItem(POST_EDITOR_DRAFT_STORAGE_KEY);
+    usePostEditorStore.getState().resetDraft();
+    logout();
+  };
 
   return (
     <div className="">
@@ -139,7 +187,7 @@ export default function SideBar({ children, page }) {
             </div>
             <button 
                 onClick={() => { 
-                  logout(); 
+                  handleLogout(); 
                 }}
                 className="text-on-surface-variant hover:text-white transition-colors shrink-0 ml-auto"
             >

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Eye, Edit, Trash2 } from "lucide-react";
 
 const STATUS_STYLES = {
@@ -137,11 +138,15 @@ function DeletePostModal({ title, isDeleting, onCancel, onDelete }) {
 }
 
 export default function PostCard({ post, onDelete, isDeleting = false }) {
+  const navigate = useNavigate();
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const statusClass =
     STATUS_STYLES[post.status] ??
     "border border-outline-variant/30 bg-surface-container text-on-surface";
   const metadataLine = buildMetaLine(post.tags, post.readTime);
+  const postId = Number.parseInt(post?.id, 10);
+  const hasValidPostId = Number.isInteger(postId) && postId > 0;
+  const normalizedSlug = typeof post?.slug === "string" ? post.slug.trim() : "";
 
   const handleOpenDeleteModal = () => {
     if (!isDeleting) {
@@ -166,6 +171,17 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
     }
   };
 
+  const handleEditClick = () => {
+    if (normalizedSlug) {
+      navigate(`/admin/newposts/${encodeURIComponent(normalizedSlug)}`);
+      return;
+    }
+
+    if (hasValidPostId) {
+      navigate(`/admin/newposts/id/${postId}`);
+    }
+  };
+
   return (
     <>
       <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-4 sm:px-5">
@@ -183,7 +199,9 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
           <div className="flex gap-2">
             <button
               type="button"
-              className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+              onClick={handleEditClick}
+              disabled={!normalizedSlug && !hasValidPostId}
+              className="rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
               aria-label={`Edit ${post.title}`}
             >
               <Edit size={16} />
@@ -238,7 +256,9 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
         <div className="flex gap-2">
           <button
             type="button"
-            className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+            onClick={handleEditClick}
+            disabled={!normalizedSlug && !hasValidPostId}
+            className="w-fit rounded-md border border-outline-variant/30 p-2 text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={`Edit ${post.title}`}
           >
             <Edit size={16} />
