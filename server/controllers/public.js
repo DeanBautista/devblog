@@ -185,6 +185,70 @@ function mapPublicTagRow(row) {
   };
 }
 
+function normalizeNextArticle(row) {
+  const parsedId = Number.parseInt(row?.id, 10);
+  const title = typeof row?.title === 'string' ? row.title.trim() : '';
+  const slug = normalizeSlug(row?.slug || title);
+
+  if (!Number.isInteger(parsedId) || !title || !slug) {
+    return null;
+  }
+
+  return {
+    id: parsedId,
+    title,
+    slug,
+  };
+}
+
+async function findNextPublishedArticle(currentArticle) {
+  const currentPostId = Number.parseInt(currentArticle?.id, 10);
+  if (!Number.isInteger(currentPostId)) {
+    return null;
+  }
+
+  const currentSortDate = currentArticle?.published_at || currentArticle?.created_at;
+
+  if (currentSortDate) {
+    const [rows] = await db.query(
+      `SELECT
+         id,
+         title,
+         slug
+       FROM posts
+       WHERE LOWER(status) = 'published'
+         AND id <> ?
+         AND (
+           COALESCE(published_at, created_at) < ?
+           OR (COALESCE(published_at, created_at) = ? AND id < ?)
+         )
+       ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+       LIMIT 1`,
+      [currentPostId, currentSortDate, currentSortDate, currentPostId]
+    );
+
+    const nextArticle = normalizeNextArticle(rows[0]);
+    if (nextArticle) {
+      return nextArticle;
+    }
+  }
+
+  const [fallbackRows] = await db.query(
+    `SELECT
+       id,
+       title,
+       slug
+     FROM posts
+     WHERE LOWER(status) = 'published'
+       AND id <> ?
+     ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+     LIMIT 1`,
+    [currentPostId]
+  );
+
+  return normalizeNextArticle(fallbackRows[0]);
+}
+
 async function getHomeData(req, res) {
   try {
     const tagsInPublishedPostsPromise = db
@@ -414,8 +478,71 @@ async function listPublicArticles(req, res) {
   }
 }
 
+async function getPublicArticleBySlug(req, res) {
+  const normalizedSlug = normalizeSlug(req.params.slug);
+
+  if (!normalizedSlug) {
+    return res.status(404).json({
+      success: false,
+      message: 'Article not found',
+    });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         p.id,
+         p.title,
+         p.slug,
+         p.excerpt,
+         p.content,
+         p.reading_time,
+         COALESCE(p.views, 0) AS views,
+         p.published_at,
+         p.created_at,
+         p.cover_image,
+         u.id AS author_id,
+         u.name AS author_name,
+         u.avatar_url AS author_avatar_url
+       FROM posts p
+       LEFT JOIN users u ON u.id = p.user_id
+       WHERE LOWER(p.status) = 'published'
+         AND p.slug = ?
+       LIMIT 1`,
+      [normalizedSlug]
+    );
+
+    if (rows.length < 1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Article not found',
+      });
+    }
+
+    const [rowWithTags] = await attachTagsToArticleRows(rows);
+    const [normalizedArticle] = normalizeArticles([rowWithTags]);
+    const nextPost = await findNextPublishedArticle(rows[0]);
+
+    return res.json({
+      success: true,
+      data: {
+        ...normalizedArticle,
+        content: typeof rows[0]?.content === 'string' ? rows[0].content : '',
+        nextPost,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load article detail',
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   getHomeData,
   getPublicTags,
   listPublicArticles,
+  getPublicArticleBySlug,
 };

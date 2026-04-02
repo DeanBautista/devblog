@@ -27,3 +27,14 @@ export async function getPublicArticles({ page = 1, limit = 6, q = '', tag = '' 
 
   return response.data;
 }
+
+export async function getPublicArticleBySlug(slug) {
+  const normalizedSlug = typeof slug === 'string' ? slug.trim() : '';
+
+  if (!normalizedSlug) {
+    throw new Error('Article slug is required');
+  }
+
+  const response = await api.get(`/api/public/articles/${encodeURIComponent(normalizedSlug)}`);
+  return response.data;
+}

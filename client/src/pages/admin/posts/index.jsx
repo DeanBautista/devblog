@@ -48,6 +48,8 @@ export default function Posts() {
                             key={`admin-post-search-${post.id || index}`}
                             title={post?.title}
                             imageSrc={post?.cover_image}
+                            tags={post?.tags}
+                            readTime={post?.reading_time}
                             index={index}
                         />
                     )}

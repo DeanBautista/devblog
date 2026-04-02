@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { renderInlineMarkdown, stripHeadingSuffix } from "./postEditorHelper";
-import { INLINE_MARKDOWN_TOKEN_REGEX, previewHeadingClassByLevel, QUOTED_HEADING_REGEX, STATIC_PREVIEW_AUTHOR } from "./postEditorConstants";
+import { INLINE_MARKDOWN_TOKEN_REGEX, previewHeadingClassByLevel, QUOTED_HEADING_REGEX } from "./postEditorConstants";
 import { parseDocumentBlocks } from "../../utils/document-transformer";
 
 function DocumentHeading ({ level, children, className = "" }) {
@@ -86,13 +86,13 @@ export default function DocumentRenderer({ value }) {
                                         const quoteHeadingMatch = normalizedLine.match(QUOTED_HEADING_REGEX);
                                         if (quoteHeadingMatch) {
                                             return (
-                                                <PreviewHeading
+                                                <DocumentHeading
                                                     key={`preview-quote-${index}-heading-${lineIndex}`}
                                                     level={quoteHeadingMatch[1].length}
                                                     className="text-on-surface"
                                                 >
                                                     {renderInlineMarkdown(stripHeadingSuffix(quoteHeadingMatch[2]), `quote-heading-${index}-${lineIndex}`, INLINE_MARKDOWN_TOKEN_REGEX)}
-                                                </PreviewHeading>
+                                                </DocumentHeading>
                                             );
                                         }
 
@@ -158,7 +158,7 @@ export default function DocumentRenderer({ value }) {
                                 <img
                                     src={block.src}
                                     alt={block.alt || "Preview image"}
-                                    className="w-full max-h-[520px] object-cover rounded-xl"
+                                    className="w-full max-h-130 object-cover rounded-xl"
                                 />
                                 {(block.title || block.alt) ? (
                                     <figcaption className="text-center px-3 py-2 text-xs text-secondary">
