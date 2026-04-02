@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import api from "../../../../lib/axios";
+import { deleteAdminPost, getAdminPosts } from "../../../../lib/posts";
 import useAuthStore from "../../../../stores/authStore";
 import useDebouncedValue from "../../../../hooks/useDebouncedValue";
 import { POSTS_PER_PAGE, DEFAULT_PAGINATION } from "../constants";
@@ -56,17 +56,15 @@ export default function usePostsData() {
             setLoadError("");
 
             try {
-                const response = await api.get("/api/posts", {
-                    params: {
-                        page: currentPage,
-                        limit: POSTS_PER_PAGE,
-                        status: filterStatus,
-                    },
+                const responseBody = await getAdminPosts({
+                    page: currentPage,
+                    limit: POSTS_PER_PAGE,
+                    status: filterStatus,
                 });
 
                 if (shouldIgnore) return;
 
-                applyPostsResponse(response.data ?? {}, currentPage);
+                applyPostsResponse(responseBody ?? {}, currentPage);
             } catch {
                 if (shouldIgnore) return;
 
@@ -112,18 +110,16 @@ export default function usePostsData() {
             setIsSearching(true);
 
             try {
-                const response = await api.get("/api/posts", {
-                    params: {
-                        page: 1,
-                        limit: 5,
-                        status: filterStatus,
-                        q: normalizedQuery,
-                    },
+                const responseBody = await getAdminPosts({
+                    page: 1,
+                    limit: 5,
+                    status: filterStatus,
+                    q: normalizedQuery,
                 });
 
                 if (shouldIgnore) return;
 
-                const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+                const rows = Array.isArray(responseBody?.data) ? responseBody.data : [];
                 setSearchResults(rows);
             } catch {
                 if (shouldIgnore) return;
@@ -180,20 +176,18 @@ export default function usePostsData() {
         setDeletingPostId(parsedPostId);
 
         try {
-            await api.delete(`/api/posts/${parsedPostId}`);
+            await deleteAdminPost(parsedPostId);
 
             if (isDeletingLastItemOnPage && currentPage > 1) {
                 updatePageInUrl(currentPage - 1);
             } else {
-                const response = await api.get("/api/posts", {
-                    params: {
-                        page: currentPage,
-                        limit: POSTS_PER_PAGE,
-                        status: filterStatus,
-                    },
+                const responseBody = await getAdminPosts({
+                    page: currentPage,
+                    limit: POSTS_PER_PAGE,
+                    status: filterStatus,
                 });
 
-                applyPostsResponse(response.data ?? {}, currentPage);
+                applyPostsResponse(responseBody ?? {}, currentPage);
             }
 
             return true;

@@ -33,6 +33,9 @@ export default function PostEditor() {
         setPostExcerpt,
         setEditorContent,
         setEditorView,
+        isEditMode,
+        isPostLoading,
+        lastEditedDisplayLabel,
         hasPostTitle,
         activeCoverPreview,
         readTimeDisplayLabel,
@@ -46,7 +49,6 @@ export default function PostEditor() {
         isConfirmPublishModalOpen,
         setIsConfirmPublishModalOpen,
         isSuccessModalOpen,
-        setIsSuccessModalOpen,
         isErrorModalOpen,
         setIsErrorModalOpen,
         isSubmitting,
@@ -61,6 +63,7 @@ export default function PostEditor() {
         handleDraft,
         handlePublish,
         handleConfirmPublish,
+        handleSuccessModalClose,
         handleReadTimeChange,
         handleToggleTagSelection,
         handleCloseExcerptModal,
@@ -74,6 +77,7 @@ export default function PostEditor() {
                 onDraft={handleDraft}
                 onPublish={handlePublish}
                 isSubmitting={isSubmitting}
+                isPostLoading={isPostLoading}
             />
 
             <main className="mt-10">
@@ -81,7 +85,7 @@ export default function PostEditor() {
                     <div>
                         {editorView === EDITOR_VIEWS.WRITE && (
                             <div className="ml-auto bg-surface-container rounded-full flex items-center w-fit px-4 py-1">
-                                <span className="text-sm">Last edited 2m ago</span>
+                                <span className="text-sm">{lastEditedDisplayLabel}</span>
                             </div>
                         )}
 
@@ -89,13 +93,14 @@ export default function PostEditor() {
                             <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="flex flex-col">
                                     <span className="text-sm">Editor/Draft</span>
-                                    <h1 className="text-3xl font-bold">New Post</h1>
+                                    <h1 className="text-3xl font-bold">{isEditMode ? "Edit Post" : "New Post"}</h1>
                                 </div>
 
                                 <button
                                     type="button"
                                     onClick={() => setIsExcerptModalOpen(true)}
-                                    className="w-fit rounded-lg border border-outline-variant/40 bg-surface-container px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
+                                    disabled={isPostLoading || isSubmitting}
+                                    className="w-fit rounded-lg border border-outline-variant/40 bg-surface-container px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     Post Excerpt
                                 </button>
@@ -104,7 +109,13 @@ export default function PostEditor() {
                     </div>
 
                     <div className="mt-10">
-                        {editorView === EDITOR_VIEWS.WRITE ? (
+                        {isEditMode && isPostLoading && (
+                            <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-8 text-center text-sm text-on-surface-variant sm:px-5">
+                                Loading post data...
+                            </article>
+                        )}
+
+                        {!isPostLoading && editorView === EDITOR_VIEWS.WRITE ? (
                             <>
                                 <PostMetadataForm
                                     postTitle={postTitle}
@@ -134,7 +145,7 @@ export default function PostEditor() {
                                     onImageChange={handleImageChange}
                                 />
                             </>
-                        ) : (
+                        ) : !isPostLoading ? (
                             <PostPreviewSection
                                 user={user}
                                 postTitle={postTitle}
@@ -145,9 +156,9 @@ export default function PostEditor() {
                                 readTimeDisplayLabel={readTimeDisplayLabel}
                                 editorContent={editorContent}
                             />
-                        )}
+                        ) : null}
 
-                        {editorView === EDITOR_VIEWS.WRITE && (
+                        {!isPostLoading && editorView === EDITOR_VIEWS.WRITE && (
                             <DocumentationEditor
                                 value={editorContent}
                                 onChangeValue={setEditorContent}
@@ -185,7 +196,7 @@ export default function PostEditor() {
             {isSuccessModalOpen && (
                 <SuccessModal
                     message={successMessage}
-                    onClose={() => setIsSuccessModalOpen(false)}
+                    onClose={handleSuccessModalClose}
                 />
             )}
 

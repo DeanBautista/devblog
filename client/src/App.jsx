@@ -36,7 +36,7 @@ function App() {
           <PublicRoute>
             <PublicLayout />
           </PublicRoute>
-        }>
+        }>  
           <Route path="/" element={<Home />} />
           <Route path="/article" element={<Article />} />
           <Route path="/article/:slug" element={<ArticleDetail />} />
@@ -66,6 +66,22 @@ function App() {
         } />
 
         <Route path="/admin/newposts" element={
+          <ProtectedRoute>
+            <SideBar page="newposts">
+              <PostEditor />
+            </SideBar>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/newposts/id/:postId" element={
+          <ProtectedRoute>
+            <SideBar page="newposts">
+              <PostEditor />
+            </SideBar>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/newposts/:slug" element={
           <ProtectedRoute>
             <SideBar page="newposts">
               <PostEditor />

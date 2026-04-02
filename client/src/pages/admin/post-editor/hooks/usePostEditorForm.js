@@ -1,10 +1,69 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { EDITOR_VIEWS } from "../../../../components/document_renderer/postEditorConstants";
+import {
+    createAdminPost,
+    getAdminPostById,
+    getAdminPostBySlug,
+    updateAdminPost,
+} from "../../../../lib/posts";
+import { getAdminTags } from "../../../../lib/tags";
 import usePostEditorStore from "../../../../stores/postEditorStore";
-import api from "../../../../lib/axios";
 import { normalizeSlug } from "../../../../utils/slug";
 import { MIN_POST_TAGS, MAX_POST_TAGS } from "../constants";
 
+function normalizeIncomingTagIds(value) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    const normalizedIds = value
+        .map((tagId) => Number.parseInt(tagId, 10))
+        .filter((tagId) => Number.isInteger(tagId) && tagId > 0);
+
+    return Array.from(new Set(normalizedIds));
+}
+
+function formatDateLabel(value) {
+    const parsedDate = new Date(value ?? "");
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    }
+
+    return parsedDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
+function formatLastEditedLabel(value, isEditMode) {
+    if (!isEditMode) {
+        return "Last edited just now";
+    }
+
+    const parsedDate = new Date(value ?? "");
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "Last edited recently";
+    }
+
+    return `Last edited ${parsedDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    })}`;
+}
+
 export default function usePostEditorForm() {
+    const navigate = useNavigate();
+    const { slug: routeSlugParam, postId: routePostIdParam } = useParams();
+
     const postTitle = usePostEditorStore((state) => state.postTitle);
     const postSlug = usePostEditorStore((state) => state.postSlug);
     const postExcerpt = usePostEditorStore((state) => state.postExcerpt);
@@ -24,6 +83,7 @@ export default function usePostEditorForm() {
 
     const fileInputRef = useRef(null);
     const titleTextareaRef = useRef(null);
+    const wasEditModeRef = useRef(false);
 
     const [preview, setPreview] = useState(null);
     const [isExcerptModalOpen, setIsExcerptModalOpen] = useState(false);
@@ -39,12 +99,26 @@ export default function usePostEditorForm() {
     const [isTagsLoading, setIsTagsLoading] = useState(false);
     const [tagsLoadError, setTagsLoadError] = useState("");
     const [tagSearchTerm, setTagSearchTerm] = useState("");
+    const [isPostLoading, setIsPostLoading] = useState(false);
+    const [editingPostId, setEditingPostId] = useState(null);
+    const [publishDateValue, setPublishDateValue] = useState(null);
+    const [lastEditedAt, setLastEditedAt] = useState(null);
 
     const hasPostTitle = postTitle.trim().length > 0;
     const activeCoverPreview = preview || null;
     const normalizedReadTimeMinutes = readTimeMinutes.trim();
     const readTimeDisplayLabel = `${normalizedReadTimeMinutes || "0"} min read`;
     const normalizedTagSearchTerm = tagSearchTerm.trim().toLowerCase();
+    const normalizedRouteSlug = useMemo(() => normalizeSlug(routeSlugParam), [routeSlugParam]);
+    const normalizedRoutePostId = useMemo(() => {
+        const parsedPostId = Number.parseInt(routePostIdParam, 10);
+        return Number.isInteger(parsedPostId) && parsedPostId > 0 ? parsedPostId : null;
+    }, [routePostIdParam]);
+    const isIdRoute = routePostIdParam != null;
+    const isSlugRoute = routeSlugParam != null;
+    const isEditMode = isIdRoute || isSlugRoute;
+    const resolvedEditingPostId =
+        Number.isInteger(editingPostId) && editingPostId > 0 ? editingPostId : null;
 
     const selectedTags = useMemo(() => {
         if (selectedTagIds.length < 1) {
@@ -82,12 +156,30 @@ export default function usePostEditorForm() {
         });
     }, [availableTags, normalizedTagSearchTerm]);
 
-    const publishDateDisplayLabel = useMemo(() => {
-        return new Date().toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
+    const publishDateDisplayLabel = useMemo(() => formatDateLabel(publishDateValue), [publishDateValue]);
+    const lastEditedDisplayLabel = useMemo(
+        () => formatLastEditedLabel(lastEditedAt, isEditMode),
+        [isEditMode, lastEditedAt]
+    );
+
+    const clearTransientFormState = useCallback(() => {
+        setTagSearchTerm("");
+        setValidationErrors([]);
+        setIsExcerptModalOpen(false);
+        setIsValidationModalOpen(false);
+        setIsConfirmPublishModalOpen(false);
+
+        setPreview((activePreview) => {
+            if (activePreview) {
+                URL.revokeObjectURL(activePreview);
+            }
+
+            return null;
         });
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
     }, []);
 
     useEffect(() => {
@@ -95,6 +187,23 @@ export default function usePostEditorForm() {
             if (preview) URL.revokeObjectURL(preview);
         };
     }, [preview]);
+
+    useEffect(() => {
+        if (isEditMode) {
+            wasEditModeRef.current = true;
+            return;
+        }
+
+        if (wasEditModeRef.current) {
+            resetDraft();
+            clearTransientFormState();
+            wasEditModeRef.current = false;
+        }
+
+        setEditingPostId(null);
+        setPublishDateValue(null);
+        setLastEditedAt(null);
+    }, [clearTransientFormState, isEditMode, resetDraft]);
 
     useEffect(() => {
         if (titleTextareaRef.current) {
@@ -111,13 +220,11 @@ export default function usePostEditorForm() {
             setTagsLoadError("");
 
             try {
-                const response = await api.get("/api/tags", {
-                    params: { page: 1, limit: 100 },
-                });
+                const responseBody = await getAdminTags({ page: 1, limit: 100 });
 
                 if (shouldIgnore) return;
 
-                const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+                const rows = Array.isArray(responseBody?.data) ? responseBody.data : [];
                 const normalizedTags = rows
                     .map((row) => {
                         const parsedId = Number.parseInt(row?.id, 10);
@@ -156,6 +263,115 @@ export default function usePostEditorForm() {
             shouldIgnore = true;
         };
     }, []);
+
+    useEffect(() => {
+        let shouldIgnore = false;
+
+        const redirectToHome = () => {
+            navigate("/", { replace: true });
+        };
+
+        const loadEditablePost = async () => {
+            if (!isEditMode) {
+                return;
+            }
+
+            if (isIdRoute && normalizedRoutePostId == null) {
+                redirectToHome();
+                return;
+            }
+
+            if (isSlugRoute && !normalizedRouteSlug) {
+                redirectToHome();
+                return;
+            }
+
+            try {
+                setIsPostLoading(true);
+                setSubmitError("");
+
+                const responseBody = isIdRoute
+                    ? await getAdminPostById(normalizedRoutePostId)
+                    : await getAdminPostBySlug(normalizedRouteSlug);
+
+                if (shouldIgnore) {
+                    return;
+                }
+
+                const post = responseBody?.data ?? {};
+                const fetchedPostId = Number.parseInt(post?.id, 10);
+
+                if (!Number.isInteger(fetchedPostId) || fetchedPostId < 1) {
+                    throw new Error("Invalid post payload");
+                }
+
+                setEditingPostId(fetchedPostId);
+                setPostTitle(String(post?.title ?? ""));
+                setPostSlug(String(post?.slug ?? ""));
+                setPostExcerpt(String(post?.excerpt ?? ""));
+                setEditorContent(String(post?.content ?? ""));
+
+                const nextReadTime = Number.parseInt(post?.reading_time, 10);
+                setReadTimeMinutes(
+                    Number.isInteger(nextReadTime) && nextReadTime > 0
+                        ? String(nextReadTime)
+                        : "1"
+                );
+
+                setSelectedTagIds(normalizeIncomingTagIds(post?.tag_ids));
+                setEditorView(EDITOR_VIEWS.WRITE);
+
+                setPublishDateValue(post?.published_at ?? post?.created_at ?? null);
+                setLastEditedAt(post?.updated_at ?? post?.created_at ?? null);
+
+                clearTransientFormState();
+            } catch (error) {
+                if (shouldIgnore) {
+                    return;
+                }
+
+                const statusCode = Number.parseInt(error?.response?.status, 10);
+
+                if (statusCode === 400 || statusCode === 401 || statusCode === 403 || statusCode === 404) {
+                    redirectToHome();
+                    return;
+                }
+
+                const message =
+                    error?.response?.data?.message ||
+                    error?.response?.data?.error ||
+                    "Unable to load post right now. Please try again.";
+
+                setSubmitError(message);
+                setIsErrorModalOpen(true);
+            } finally {
+                if (!shouldIgnore) {
+                    setIsPostLoading(false);
+                }
+            }
+        };
+
+        loadEditablePost();
+
+        return () => {
+            shouldIgnore = true;
+        };
+    }, [
+        clearTransientFormState,
+        isEditMode,
+        isIdRoute,
+        isSlugRoute,
+        navigate,
+        normalizedRoutePostId,
+        normalizedRouteSlug,
+        setEditorContent,
+        setEditorView,
+        setPostExcerpt,
+        setPostSlug,
+        setPostTitle,
+        setReadTimeMinutes,
+        setSelectedTagIds,
+    ]);
 
     useEffect(() => {
         if (selectedTagIds.length > MAX_POST_TAGS) {
@@ -202,18 +418,25 @@ export default function usePostEditorForm() {
 
     const resetFormState = () => {
         resetDraft();
-        setPreview(null);
-        setTagSearchTerm("");
-        setValidationErrors([]);
-        setIsExcerptModalOpen(false);
+        setEditingPostId(null);
+        setPublishDateValue(null);
+        setLastEditedAt(null);
+        clearTransientFormState();
+    };
 
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
+    const handleSuccessModalClose = () => {
+        setIsSuccessModalOpen(false);
+
+        if (!isEditMode) {
+            return;
         }
+
+        resetFormState();
+        navigate("/admin/newposts", { replace: true });
     };
 
     const handlePublish = () => {
-        if (isSubmitting) return;
+        if (isSubmitting || isPostLoading) return;
 
         const errors = [];
         if (!postTitle.trim()) errors.push("Post title");
@@ -236,7 +459,7 @@ export default function usePostEditorForm() {
     };
 
     const handleConfirmPublish = async () => {
-        if (isSubmitting) return;
+        if (isSubmitting || isPostLoading) return;
 
         const resolvedSlug = getResolvedSlug();
 
@@ -258,16 +481,44 @@ export default function usePostEditorForm() {
                 slug: resolvedSlug,
             };
 
-            const response = await api.post("/api/posts/submitpost", payload);
+            const responseBody =
+                isEditMode && resolvedEditingPostId
+                    ? await updateAdminPost(resolvedEditingPostId, payload)
+                    : await createAdminPost(payload);
 
-            resetFormState();
-            setSuccessMessage(response.data?.message || "Post published successfully.");
+            if (isEditMode && resolvedEditingPostId) {
+                const updatedPost = responseBody?.post ?? {};
+                const nextPostId = Number.parseInt(updatedPost?.id, 10);
+                const nextSlug = normalizeSlug(updatedPost?.slug);
+
+                if (Number.isInteger(nextPostId) && nextPostId > 0) {
+                    setEditingPostId(nextPostId);
+
+                    if (
+                        isSlugRoute &&
+                        normalizedRouteSlug &&
+                        nextSlug &&
+                        nextSlug !== normalizedRouteSlug
+                    ) {
+                        navigate(`/admin/newposts/id/${nextPostId}`, { replace: true });
+                    }
+                }
+
+                setPublishDateValue(updatedPost?.published_at ?? publishDateValue ?? new Date());
+                setLastEditedAt(updatedPost?.updated_at ?? new Date().toISOString());
+            } else {
+                resetFormState();
+            }
+
+            setSuccessMessage(responseBody?.message || "Post published successfully.");
             setIsSuccessModalOpen(true);
         } catch (error) {
             const message =
                 error?.response?.data?.message ||
                 error?.response?.data?.error ||
-                "Unable to publish post right now. Please try again.";
+                (isEditMode
+                    ? "Unable to update and publish post right now. Please try again."
+                    : "Unable to publish post right now. Please try again.");
 
             setSubmitError(message);
             setIsErrorModalOpen(true);
@@ -277,23 +528,51 @@ export default function usePostEditorForm() {
     };
 
     const handleDraft = async () => {
-        if (isSubmitting) return;
+        if (isSubmitting || isPostLoading) return;
 
         try {
             setIsSubmitting(true);
             setSubmitError("");
 
             const payload = buildSubmissionPayload("draft");
-            const response = await api.post("/api/posts/submitpost", payload);
+            const responseBody =
+                isEditMode && resolvedEditingPostId
+                    ? await updateAdminPost(resolvedEditingPostId, payload)
+                    : await createAdminPost(payload);
 
-            resetFormState();
-            setSuccessMessage(response.data?.message || "Post draft saved successfully.");
+            if (isEditMode && resolvedEditingPostId) {
+                const updatedPost = responseBody?.post ?? {};
+                const nextPostId = Number.parseInt(updatedPost?.id, 10);
+                const nextSlug = normalizeSlug(updatedPost?.slug);
+
+                if (Number.isInteger(nextPostId) && nextPostId > 0) {
+                    setEditingPostId(nextPostId);
+
+                    if (
+                        isSlugRoute &&
+                        normalizedRouteSlug &&
+                        nextSlug &&
+                        nextSlug !== normalizedRouteSlug
+                    ) {
+                        navigate(`/admin/newposts/id/${nextPostId}`, { replace: true });
+                    }
+                }
+
+                setPublishDateValue(updatedPost?.published_at ?? publishDateValue ?? null);
+                setLastEditedAt(updatedPost?.updated_at ?? new Date().toISOString());
+            } else {
+                resetFormState();
+            }
+
+            setSuccessMessage(responseBody?.message || "Post draft saved successfully.");
             setIsSuccessModalOpen(true);
         } catch (error) {
             const message =
                 error?.response?.data?.message ||
                 error?.response?.data?.error ||
-                "Unable to save draft right now. Please try again.";
+                (isEditMode
+                    ? "Unable to update draft right now. Please try again."
+                    : "Unable to save draft right now. Please try again.");
 
             setSubmitError(message);
             setIsErrorModalOpen(true);
@@ -349,6 +628,9 @@ export default function usePostEditorForm() {
         setEditorView,
 
         // Derived values
+        isEditMode,
+        isPostLoading,
+        lastEditedDisplayLabel,
         hasPostTitle,
         activeCoverPreview,
         normalizedReadTimeMinutes,
@@ -388,6 +670,7 @@ export default function usePostEditorForm() {
         handleDraft,
         handlePublish,
         handleConfirmPublish,
+        handleSuccessModalClose,
         handleReadTimeChange,
         handleToggleTagSelection,
         handleCloseExcerptModal,
