@@ -49,6 +49,37 @@ export async function updateAdminPost(postId, payload) {
     return response.data;
 }
 
+export async function uploadAdminPostCover(file) {
+    if (!(file instanceof File)) {
+        throw new Error("A valid image file is required");
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await api.post("/api/posts/cover-image", formData, {
+        // Cover upload can take longer than regular JSON requests.
+        timeout: 60000,
+    });
+
+    return response.data;
+}
+
+export async function deleteAdminPostCover(imageUrl) {
+    if (typeof imageUrl !== "string" || !imageUrl.trim()) {
+        return {
+            success: true,
+            cleaned: false,
+        };
+    }
+
+    const response = await api.post("/api/posts/cover-image/delete", {
+        cover_image: imageUrl.trim(),
+    });
+
+    return response.data;
+}
+
 export async function deleteAdminPost(postId) {
     const parsedPostId = Number.parseInt(postId, 10);
 

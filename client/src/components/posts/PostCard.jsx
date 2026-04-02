@@ -34,14 +34,26 @@ function buildMetaLine(tags, readTime) {
   return `${normalizedTags.join(" • ")} • ${normalizedReadTime}`;
 }
 
-function PostCover({ variant, title }) {
+function PostCover({ variant, title, imageSrc }) {
   const gradient = COVER_STYLES[variant] ?? COVER_STYLES.mint;
 
   return (
     <div className={`relative h-12 w-14 overflow-hidden rounded-lg bg-linear-to-r ${gradient}`}>
-      <span className="absolute left-1.5 top-1.5 bottom-1.5 w-0.75 rounded-full bg-white/70" />
-      <span className="absolute left-3.5 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/45" />
-      <span className="absolute right-2 top-1.5 bottom-1.5 w-0.5 rounded-full bg-black/10" />
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={title}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <>
+          <span className="absolute left-1.5 top-1.5 bottom-1.5 w-0.75 rounded-full bg-white/70" />
+          <span className="absolute left-3.5 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/45" />
+          <span className="absolute right-2 top-1.5 bottom-1.5 w-0.5 rounded-full bg-black/10" />
+        </>
+      )}
       <span className="sr-only">{title} cover</span>
     </div>
   );
@@ -187,7 +199,7 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
       <article className="rounded-xl border border-outline-variant/30 bg-surface-container-low/60 px-4 py-4 sm:px-5">
         <div className="xl:hidden">
         <div className="flex items-start gap-3">
-          <PostCover variant={post.coverVariant} title={post.title} />
+          <PostCover variant={post.coverVariant} title={post.title} imageSrc={post.coverImage} />
 
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold leading-snug text-on-surface">{post.title}</h3>
@@ -233,7 +245,7 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
       </div>
 
       <div className="hidden items-center gap-4 xl:grid xl:grid-cols-[84px_minmax(0,1.7fr)_112px_112px_108px_70px]">
-        <PostCover variant={post.coverVariant} title={post.title} />
+        <PostCover variant={post.coverVariant} title={post.title} imageSrc={post.coverImage} />
 
         <div className="min-w-0">
           <h3 className="text-base font-semibold leading-snug text-on-surface">{post.title}</h3>

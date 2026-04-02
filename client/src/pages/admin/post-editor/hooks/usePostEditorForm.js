@@ -3,8 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { EDITOR_VIEWS } from "../../../../components/document_renderer/postEditorConstants";
 import {
     createAdminPost,
+    deleteAdminPostCover,
     getAdminPostById,
     getAdminPostBySlug,
+    uploadAdminPostCover,
     updateAdminPost,
 } from "../../../../lib/posts";
 import { getAdminTags } from "../../../../lib/tags";
@@ -84,8 +86,12 @@ export default function usePostEditorForm() {
     const fileInputRef = useRef(null);
     const titleTextareaRef = useRef(null);
     const wasEditModeRef = useRef(false);
+    const uploadSequenceRef = useRef(0);
 
-    const [preview, setPreview] = useState(null);
+    const [coverImageUrl, setCoverImageUrl] = useState(null);
+    const [hasUploadedCoverInSession, setHasUploadedCoverInSession] = useState(false);
+    const [isCoverUploading, setIsCoverUploading] = useState(false);
+    const [coverUploadError, setCoverUploadError] = useState("");
     const [isExcerptModalOpen, setIsExcerptModalOpen] = useState(false);
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isConfirmPublishModalOpen, setIsConfirmPublishModalOpen] = useState(false);
@@ -105,7 +111,7 @@ export default function usePostEditorForm() {
     const [lastEditedAt, setLastEditedAt] = useState(null);
 
     const hasPostTitle = postTitle.trim().length > 0;
-    const activeCoverPreview = preview || null;
+    const activeCoverPreview = coverImageUrl || null;
     const normalizedReadTimeMinutes = readTimeMinutes.trim();
     const readTimeDisplayLabel = `${normalizedReadTimeMinutes || "0"} min read`;
     const normalizedTagSearchTerm = tagSearchTerm.trim().toLowerCase();
@@ -168,25 +174,14 @@ export default function usePostEditorForm() {
         setIsExcerptModalOpen(false);
         setIsValidationModalOpen(false);
         setIsConfirmPublishModalOpen(false);
-
-        setPreview((activePreview) => {
-            if (activePreview) {
-                URL.revokeObjectURL(activePreview);
-            }
-
-            return null;
-        });
+        setCoverUploadError("");
+        setIsCoverUploading(false);
+        uploadSequenceRef.current += 1;
 
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
     }, []);
-
-    useEffect(() => {
-        return () => {
-            if (preview) URL.revokeObjectURL(preview);
-        };
-    }, [preview]);
 
     useEffect(() => {
         if (isEditMode) {
@@ -203,6 +198,9 @@ export default function usePostEditorForm() {
         setEditingPostId(null);
         setPublishDateValue(null);
         setLastEditedAt(null);
+        setCoverImageUrl(null);
+        setHasUploadedCoverInSession(false);
+        setCoverUploadError("");
     }, [clearTransientFormState, isEditMode, resetDraft]);
 
     useEffect(() => {
@@ -323,6 +321,13 @@ export default function usePostEditorForm() {
 
                 setPublishDateValue(post?.published_at ?? post?.created_at ?? null);
                 setLastEditedAt(post?.updated_at ?? post?.created_at ?? null);
+                setCoverImageUrl(
+                    typeof post?.cover_image === "string" && post.cover_image.trim()
+                        ? post.cover_image.trim()
+                        : null
+                );
+                setHasUploadedCoverInSession(false);
+                setCoverUploadError("");
 
                 clearTransientFormState();
             } catch (error) {
@@ -392,11 +397,75 @@ export default function usePostEditorForm() {
         }
     }, [availableTags, selectedTagIds, setSelectedTagIds]);
 
-    const handleImageChange = (event) => {
+    const handleImageChange = async (event) => {
         const file = event.target.files?.[0];
-        if (!file) return;
-        if (preview) URL.revokeObjectURL(preview);
-        setPreview(URL.createObjectURL(file));
+
+        if (!file) {
+            return;
+        }
+
+        const currentUploadSequence = uploadSequenceRef.current + 1;
+        uploadSequenceRef.current = currentUploadSequence;
+
+        const previousCoverImageUrl = coverImageUrl;
+        const shouldCleanupPreviousUpload = hasUploadedCoverInSession && Boolean(previousCoverImageUrl);
+
+        try {
+            setIsCoverUploading(true);
+            setCoverUploadError("");
+
+            const uploadResponse = await uploadAdminPostCover(file);
+            const uploadedUrl =
+                typeof uploadResponse?.data?.url === "string" && uploadResponse.data.url.trim()
+                    ? uploadResponse.data.url.trim()
+                    : "";
+
+            if (!uploadedUrl) {
+                throw new Error("Cover image upload returned an empty URL.");
+            }
+
+            if (currentUploadSequence !== uploadSequenceRef.current) {
+                void deleteAdminPostCover(uploadedUrl).catch(() => null);
+                return;
+            }
+
+            setCoverImageUrl(uploadedUrl);
+            setHasUploadedCoverInSession(true);
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
+            if (
+                shouldCleanupPreviousUpload &&
+                previousCoverImageUrl &&
+                previousCoverImageUrl !== uploadedUrl
+            ) {
+                void deleteAdminPostCover(previousCoverImageUrl).catch(() => null);
+            }
+        } catch (error) {
+            if (currentUploadSequence !== uploadSequenceRef.current) {
+                return;
+            }
+
+            const isTimeoutError =
+                error?.code === "ECONNABORTED" ||
+                (typeof error?.message === "string" && error.message.toLowerCase().includes("timeout"));
+
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                (isTimeoutError
+                    ? "Cover upload timed out. Try a smaller image or retry."
+                    : error?.message) ||
+                "Unable to upload cover image right now. Please try again.";
+
+            setCoverUploadError(message);
+        } finally {
+            if (currentUploadSequence === uploadSequenceRef.current) {
+                setIsCoverUploading(false);
+            }
+        }
     };
 
     const getResolvedSlug = () => {
@@ -410,7 +479,7 @@ export default function usePostEditorForm() {
             excerpt: postExcerpt.trim(),
             content: editorContent.trim(),
             reading_time: Number.parseInt(normalizedReadTimeMinutes, 10),
-            cover_image: null,
+            cover_image: coverImageUrl,
             tag_ids: selectedTagIds,
             status,
         };
@@ -421,6 +490,9 @@ export default function usePostEditorForm() {
         setEditingPostId(null);
         setPublishDateValue(null);
         setLastEditedAt(null);
+        setCoverImageUrl(null);
+        setHasUploadedCoverInSession(false);
+        setCoverUploadError("");
         clearTransientFormState();
     };
 
@@ -436,7 +508,7 @@ export default function usePostEditorForm() {
     };
 
     const handlePublish = () => {
-        if (isSubmitting || isPostLoading) return;
+        if (isSubmitting || isPostLoading || isCoverUploading) return;
 
         const errors = [];
         if (!postTitle.trim()) errors.push("Post title");
@@ -459,7 +531,7 @@ export default function usePostEditorForm() {
     };
 
     const handleConfirmPublish = async () => {
-        if (isSubmitting || isPostLoading) return;
+        if (isSubmitting || isPostLoading || isCoverUploading) return;
 
         const resolvedSlug = getResolvedSlug();
 
@@ -528,7 +600,7 @@ export default function usePostEditorForm() {
     };
 
     const handleDraft = async () => {
-        if (isSubmitting || isPostLoading) return;
+        if (isSubmitting || isPostLoading || isCoverUploading) return;
 
         try {
             setIsSubmitting(true);
@@ -654,7 +726,9 @@ export default function usePostEditorForm() {
 
         // Submission states
         isSubmitting,
+        isCoverUploading,
         submitError,
+        coverUploadError,
         successMessage,
         validationErrors,
 

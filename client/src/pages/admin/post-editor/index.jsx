@@ -52,7 +52,9 @@ export default function PostEditor() {
         isErrorModalOpen,
         setIsErrorModalOpen,
         isSubmitting,
+        isCoverUploading,
         submitError,
+        coverUploadError,
         successMessage,
         validationErrors,
         isTagsLoading,
@@ -77,6 +79,7 @@ export default function PostEditor() {
                 onDraft={handleDraft}
                 onPublish={handlePublish}
                 isSubmitting={isSubmitting}
+                isCoverUploading={isCoverUploading}
                 isPostLoading={isPostLoading}
             />
 
@@ -99,7 +102,7 @@ export default function PostEditor() {
                                 <button
                                     type="button"
                                     onClick={() => setIsExcerptModalOpen(true)}
-                                    disabled={isPostLoading || isSubmitting}
+                                    disabled={isPostLoading || isSubmitting || isCoverUploading}
                                     className="w-fit rounded-lg border border-outline-variant/40 bg-surface-container px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     Post Excerpt
@@ -143,6 +146,8 @@ export default function PostEditor() {
                                     fileInputRef={fileInputRef}
                                     activeCoverPreview={activeCoverPreview}
                                     onImageChange={handleImageChange}
+                                    isCoverUploading={isCoverUploading}
+                                    coverUploadError={coverUploadError}
                                 />
                             </>
                         ) : !isPostLoading ? (
