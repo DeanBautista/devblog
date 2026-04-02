@@ -58,6 +58,7 @@ export default function PostEditor() {
         tagSearchTerm,
         setTagSearchTerm,
         handleImageChange,
+        handleDraft,
         handlePublish,
         handleConfirmPublish,
         handleReadTimeChange,
@@ -70,6 +71,7 @@ export default function PostEditor() {
             <PostEditorToolbar
                 editorView={editorView}
                 setEditorView={setEditorView}
+                onDraft={handleDraft}
                 onPublish={handlePublish}
                 isSubmitting={isSubmitting}
             />

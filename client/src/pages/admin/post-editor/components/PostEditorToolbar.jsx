@@ -1,6 +1,6 @@
 import { EDITOR_VIEWS } from "../../../../components/document_renderer/postEditorConstants";
 
-export default function PostEditorToolbar({ editorView, setEditorView, onPublish, isSubmitting }) {
+export default function PostEditorToolbar({ editorView, setEditorView, onDraft, onPublish, isSubmitting }) {
     const handleEditorViewChange = (nextView) => {
         setEditorView(nextView);
     };
@@ -36,6 +36,7 @@ export default function PostEditorToolbar({ editorView, setEditorView, onPublish
                 <div className="w-full flex justify-end gap-4">
                     <button
                         type="button"
+                        onClick={onDraft}
                         className="px-5 py-2 rounded-full border"
                         disabled={isSubmitting}
                     >
