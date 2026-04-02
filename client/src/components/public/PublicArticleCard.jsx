@@ -1,4 +1,5 @@
 import { Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const FALLBACK_COVER_STYLES = [
   'from-[#7fc7d1] via-[#66b9c8] to-[#4b95aa]',
@@ -66,6 +67,8 @@ function getInitials(name) {
 export default function PublicArticleCard({ article, index = 0 }) {
   const coverStyle = FALLBACK_COVER_STYLES[index % FALLBACK_COVER_STYLES.length];
   const title = article?.title || 'Untitled post';
+  const normalizedSlug = typeof article?.slug === 'string' ? article.slug.trim() : '';
+  const detailPath = normalizedSlug ? `/article/${encodeURIComponent(normalizedSlug)}` : '';
   const excerpt = article?.excerpt || 'No excerpt available for this post yet.';
   const authorName = article?.author?.name || 'Unknown Author';
   const authorAvatar = article?.author?.avatar_url || null;
@@ -74,7 +77,7 @@ export default function PublicArticleCard({ article, index = 0 }) {
   const tagNames = normalizeTagNames(article?.tags);
   const imageTagNames = tagNames.slice(0, 3);
 
-  return (
+  const cardContent = (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container shadow-[0_14px_38px_rgba(3,8,24,0.32)] transition-transform duration-300 hover:-translate-y-1.5">
       <div className="relative h-44 overflow-hidden bg-surface-container-high">
         {article?.cover_image ? (
@@ -148,5 +151,19 @@ export default function PublicArticleCard({ article, index = 0 }) {
         </div>
       </div>
     </article>
+  );
+
+  if (!detailPath) {
+    return cardContent;
+  }
+
+  return (
+    <Link
+      to={detailPath}
+      className="block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      aria-label={`Open ${title}`}
+    >
+      {cardContent}
+    </Link>
   );
 }

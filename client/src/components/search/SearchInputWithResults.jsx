@@ -40,7 +40,7 @@ export default function SearchInputWithResults({
             ) : results.length === 0 ? (
               <p className="text-sm text-on-surface-variant">{emptyLabel}</p>
             ) : (
-              <div className="flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
+              <div className="search-results-scrollbar flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
                 {results.map((item, index) => renderResult(item, index))}
               </div>
             )}

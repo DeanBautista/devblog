@@ -160,3 +160,28 @@ body {
     animation: none;
   }
 }
+
+/* Search results scrollbar style for public/admin search panels */
+.search-results-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(192, 193, 255, 0.52) rgba(23, 31, 51, 0.72);
+}
+
+.search-results-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.search-results-scrollbar::-webkit-scrollbar-track {
+  border-radius: 9999px;
+  background: rgba(23, 31, 51, 0.72);
+}
+
+.search-results-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(23, 31, 51, 0.72);
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(225, 224, 255, 0.88) 0%, rgba(128, 131, 255, 0.82) 100%);
+}
+
+.search-results-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(225, 224, 255, 0.98) 0%, rgba(128, 131, 255, 0.95) 100%);
+}

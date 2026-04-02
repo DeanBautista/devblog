@@ -8,6 +8,7 @@ import Posts from "./pages/admin/posts/index"
 import Tags from "./pages/admin/tags"
 import Home from "./pages/public/Home"
 import Article from "./pages/public/article/index"
+import ArticleDetail from "./pages/public/article/detail"
 import About from "./pages/public/About"
 
 import ProtectedRoute from "./routes/ProtectedRoute"
@@ -38,6 +39,7 @@ function App() {
         }>
           <Route path="/" element={<Home />} />
           <Route path="/article" element={<Article />} />
+          <Route path="/article/:slug" element={<ArticleDetail />} />
           <Route path="/about" element={<About />} />
         </Route>
 

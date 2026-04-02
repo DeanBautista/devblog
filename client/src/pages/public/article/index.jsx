@@ -59,6 +59,9 @@ export default function Article() {
                                     key={`public-article-search-${article.id || article.slug || index}`}
                                     title={article?.title}
                                     imageSrc={article?.cover_image}
+                                    tags={article?.tags}
+                                    readTime={article?.reading_time}
+                                    to={article?.slug ? `/article/${encodeURIComponent(article.slug)}` : ''}
                                     index={index}
                                 />
                             )}
