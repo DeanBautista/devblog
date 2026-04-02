@@ -5,11 +5,16 @@ import PublicArticleCard from '../../components/public/PublicArticleCard';
 import SearchInputWithResults from '../../components/search/SearchInputWithResults';
 import SearchResultCard from '../../components/search/SearchResultCard';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
-import { getPublicArticles } from '../../lib/public';
+import { getPublicArticles, getPublicTags } from '../../lib/public';
+import { normalizeSlug } from '../../utils/slug';
 
 const ARTICLES_PER_PAGE = 6;
 
-const ARCHIVE_TAGS = ['All', 'React', 'Node.js', 'CSS', 'JavaScript'];
+const ALL_TAG_OPTION = {
+  id: 'all',
+  name: 'All',
+  slug: '',
+};
 
 const DEFAULT_PAGINATION = {
   page: 1,
@@ -44,14 +49,53 @@ function normalizePagination(apiPagination, fallbackPage) {
   };
 }
 
+function normalizeTagSlugParam(tagParam) {
+  if (typeof tagParam !== 'string') {
+    return '';
+  }
+
+  return normalizeSlug(tagParam);
+}
+
+function normalizePublicTags(tagsValue) {
+  if (!Array.isArray(tagsValue)) {
+    return [];
+  }
+
+  const seenSlugs = new Set();
+
+  return tagsValue.reduce((normalizedTags, tagRow) => {
+    const parsedId = Number.parseInt(tagRow?.id, 10);
+    const tagName = typeof tagRow?.name === 'string' ? tagRow.name.trim() : '';
+    const tagSlug = normalizeTagSlugParam(tagRow?.slug || tagName);
+
+    if (!tagName || !tagSlug || seenSlugs.has(tagSlug)) {
+      return normalizedTags;
+    }
+
+    seenSlugs.add(tagSlug);
+
+    normalizedTags.push({
+      id: Number.isInteger(parsedId) && parsedId > 0 ? parsedId : tagSlug,
+      name: tagName,
+      slug: tagSlug,
+    });
+
+    return normalizedTags;
+  }, []);
+}
+
 export default function Article() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = normalizePageParam(searchParams.get('page'));
+  const selectedTagSlug = normalizeTagSlugParam(searchParams.get('tag'));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [articles, setArticles] = useState([]);
+  const [archiveTags, setArchiveTags] = useState([]);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [isLoading, setIsLoading] = useState(true);
+  const [areTagsLoading, setAreTagsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -64,6 +108,45 @@ export default function Article() {
   useEffect(() => {
     let shouldIgnore = false;
 
+    async function loadArchiveTags() {
+      setAreTagsLoading(true);
+
+      try {
+        const response = await getPublicTags();
+
+        if (shouldIgnore) {
+          return;
+        }
+
+        if (!response?.success) {
+          throw new Error('Tag request failed');
+        }
+
+        const rows = Array.isArray(response.data) ? response.data : [];
+        setArchiveTags(normalizePublicTags(rows));
+      } catch {
+        if (shouldIgnore) {
+          return;
+        }
+
+        setArchiveTags([]);
+      } finally {
+        if (!shouldIgnore) {
+          setAreTagsLoading(false);
+        }
+      }
+    }
+
+    loadArchiveTags();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let shouldIgnore = false;
+
     async function loadArticles() {
       setIsLoading(true);
       setLoadError('');
@@ -72,6 +155,7 @@ export default function Article() {
         const response = await getPublicArticles({
           page: currentPage,
           limit: ARTICLES_PER_PAGE,
+          tag: selectedTagSlug,
         });
 
         if (shouldIgnore) {
@@ -90,6 +174,11 @@ export default function Article() {
 
         if (nextPagination.page !== currentPage) {
           const nextParams = new URLSearchParams();
+
+          if (selectedTagSlug) {
+            nextParams.set('tag', selectedTagSlug);
+          }
+
           nextParams.set('page', String(nextPagination.page));
           setSearchParams(nextParams);
         }
@@ -120,7 +209,7 @@ export default function Article() {
     return () => {
       shouldIgnore = true;
     };
-  }, [currentPage, setSearchParams]);
+  }, [currentPage, selectedTagSlug, setSearchParams]);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -188,10 +277,49 @@ export default function Article() {
     return Math.min(cumulativeCount, pagination.total);
   }, [articles.length, pagination.limit, pagination.page, pagination.total]);
 
+  const availableArchiveTags = useMemo(() => [ALL_TAG_OPTION, ...archiveTags], [archiveTags]);
+
+  const archiveHeading = useMemo(() => {
+    if (!selectedTagSlug) {
+      return 'All Posts';
+    }
+
+    const matchedTag = archiveTags.find((tagOption) => tagOption.slug === selectedTagSlug);
+    return matchedTag ? `${matchedTag.name} Posts` : 'Filtered Posts';
+  }, [archiveTags, selectedTagSlug]);
+
   function updatePageInUrl(nextPage) {
-    const boundedPage = Math.min(Math.max(nextPage, 1), pagination.totalPages);
-    const nextParams = new URLSearchParams(searchParams);
+    const safeMaxPage = Math.max(1, pagination.totalPages);
+    const boundedPage = Math.min(Math.max(nextPage, 1), safeMaxPage);
+
+    if (boundedPage === currentPage) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams();
+
+    if (selectedTagSlug) {
+      nextParams.set('tag', selectedTagSlug);
+    }
+
     nextParams.set('page', String(boundedPage));
+    setSearchParams(nextParams);
+  }
+
+  function updateTagInUrl(nextTagSlug) {
+    const normalizedTagSlug = normalizeTagSlugParam(nextTagSlug);
+
+    if (normalizedTagSlug === selectedTagSlug && currentPage === 1) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams();
+
+    if (normalizedTagSlug) {
+      nextParams.set('tag', normalizedTagSlug);
+    }
+
+    nextParams.set('page', '1');
     setSearchParams(nextParams);
   }
 
@@ -204,7 +332,7 @@ export default function Article() {
           <div className="hero-reveal hero-reveal-delay-1 max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant">The Archive</p>
             <h1 className="mt-3 text-5xl font-semibold leading-tight tracking-tight text-on-surface sm:text-6xl">
-              All Posts
+              {archiveHeading}
             </h1>
           </div>
 
@@ -231,20 +359,26 @@ export default function Article() {
         </header>
 
         <div className="hero-reveal hero-reveal-delay-3 mt-9 flex flex-wrap gap-2.5">
-          {ARCHIVE_TAGS.map((tagLabel, index) => (
-            <button
-              key={tagLabel}
-              type="button"
-              aria-disabled="true"
-              className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
-                index === 0
-                  ? 'border-primary-fixed bg-primary-fixed text-[#1b1f3b]'
-                  : 'border-outline-variant/40 bg-surface-container-low text-on-surface-variant'
-              }`}
-            >
-              {tagLabel}
-            </button>
-          ))}
+          {availableArchiveTags.map((tagOption) => {
+            const isActive = tagOption.slug ? tagOption.slug === selectedTagSlug : !selectedTagSlug;
+
+            return (
+              <button
+                key={`archive-tag-${tagOption.slug || 'all'}`}
+                type="button"
+                onClick={() => updateTagInUrl(tagOption.slug)}
+                aria-pressed={isActive}
+                disabled={isLoading || areTagsLoading}
+                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+                  isActive
+                    ? 'border-primary-fixed bg-primary-fixed text-[#1b1f3b]'
+                    : 'border-outline-variant/40 bg-surface-container-low text-on-surface-variant'
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {tagOption.name}
+              </button>
+            );
+          })}
         </div>
 
         <div className="hero-reveal hero-reveal-delay-4 mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -270,7 +404,7 @@ export default function Article() {
 
         {!isLoading && !loadError && articles.length === 0 && (
           <p className="mt-8 rounded-2xl border border-outline-variant/30 bg-surface-container px-5 py-4 text-sm text-on-surface-variant">
-            No published posts yet.
+            {selectedTagSlug ? 'No published posts found for this tag.' : 'No published posts yet.'}
           </p>
         )}
 

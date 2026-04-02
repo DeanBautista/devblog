@@ -28,7 +28,7 @@ export default function LatestPostsSection({ articles = [], isLoading = false })
       <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {visibleArticles.map((article, index) => (
           <div key={article.id || article.slug || index} className="hero-reveal" style={{ animationDelay: `${220 + index * 120}ms` }}>
-            <PublicArticleCard article={article} index={index} badgeLabel="#latest" />
+            <PublicArticleCard article={article} index={index} />
           </div>
         ))}
       </div>

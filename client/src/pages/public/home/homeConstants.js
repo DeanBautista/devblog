@@ -26,6 +26,7 @@ export const FALLBACK_HOME_DATA = {
       published_at: '2024-03-12T00:00:00.000Z',
       created_at: '2024-03-12T00:00:00.000Z',
       cover_image: null,
+      tags: ['React', 'Performance', 'Frontend'],
       author: { id: 1, name: 'Alex Rivers', avatar_url: null },
     },
     {
@@ -38,6 +39,7 @@ export const FALLBACK_HOME_DATA = {
       published_at: '2024-03-08T00:00:00.000Z',
       created_at: '2024-03-08T00:00:00.000Z',
       cover_image: null,
+      tags: ['API', 'Architecture', 'Backend'],
       author: { id: 1, name: 'Lena Chen', avatar_url: null },
     },
     {
@@ -51,6 +53,7 @@ export const FALLBACK_HOME_DATA = {
       published_at: '2024-02-29T00:00:00.000Z',
       created_at: '2024-02-29T00:00:00.000Z',
       cover_image: null,
+      tags: ['Security', 'CI/CD', 'DevOps'],
       author: { id: 1, name: 'Marcus Thorne', avatar_url: null },
     },
   ],

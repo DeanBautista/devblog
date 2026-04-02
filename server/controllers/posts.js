@@ -6,7 +6,8 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
 const MAX_SEARCH_QUERY_LENGTH = 100;
-const MAX_TAG_IDS = 25;
+const MIN_TAG_IDS = 1;
+const MAX_TAG_IDS = 2;
 
 function normalizeTagIds(value) {
   if (value == null) {
@@ -82,6 +83,13 @@ async function submitPost(req, res) {
     return res.status(400).json({
       success: false,
       message: 'tag_ids must be an array of positive integer ids',
+    });
+  }
+
+  if (tagIds.length < MIN_TAG_IDS) {
+    return res.status(400).json({
+      success: false,
+      message: `A post must have at least ${MIN_TAG_IDS} tag`,
     });
   }
 
@@ -220,6 +228,31 @@ function normalizeSearchQuery(value) {
   return value.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
 }
 
+function mapTagRowsByPostId(tagRows) {
+  const tagsByPostId = new Map();
+
+  tagRows.forEach((tagRow) => {
+    const postId = Number.parseInt(tagRow?.post_id, 10);
+    const tagName = typeof tagRow?.name === 'string' ? tagRow.name.trim() : '';
+
+    if (!Number.isInteger(postId) || !tagName) {
+      return;
+    }
+
+    const existingTagNames = tagsByPostId.get(postId);
+    if (!existingTagNames) {
+      tagsByPostId.set(postId, [tagName]);
+      return;
+    }
+
+    if (!existingTagNames.includes(tagName)) {
+      existingTagNames.push(tagName);
+    }
+  });
+
+  return tagsByPostId;
+}
+
 async function listPosts(req, res) {
   const requestedPage = toPositiveInteger(req.query.page, DEFAULT_PAGE);
   const rawLimit = toPositiveInteger(req.query.limit, DEFAULT_LIMIT);
@@ -274,10 +307,50 @@ async function listPosts(req, res) {
 
     const listParams = [...whereParams, limit, offset];
     const [rows] = await db.query(listQuery, listParams);
+    let rowsWithTags = rows.map((row) => ({
+      ...row,
+      tags: [],
+    }));
+
+    const postIds = rows
+      .map((row) => Number.parseInt(row?.id, 10))
+      .filter((postId) => Number.isInteger(postId));
+
+    if (postIds.length > 0) {
+      try {
+        const postIdPlaceholders = postIds.map(() => '?').join(', ');
+        const [tagRows] = await db.query(
+          `SELECT
+             pt.post_id,
+             t.name
+           FROM post_tags pt
+           INNER JOIN tags t ON t.id = pt.tag_id
+           WHERE pt.post_id IN (${postIdPlaceholders})
+           ORDER BY t.name ASC`,
+          postIds
+        );
+
+        const tagNamesByPostId = mapTagRowsByPostId(tagRows);
+
+        rowsWithTags = rows.map((row) => {
+          const postId = Number.parseInt(row?.id, 10);
+          const tagNames = Number.isInteger(postId) ? tagNamesByPostId.get(postId) ?? [] : [];
+
+          return {
+            ...row,
+            tags: tagNames,
+          };
+        });
+      } catch (tagError) {
+        if (tagError?.code !== 'ER_NO_SUCH_TABLE') {
+          throw tagError;
+        }
+      }
+    }
 
     return res.json({
       success: true,
-      data: rows,
+      data: rowsWithTags,
       activeFilter: statusFilter,
       activeSearch: searchQuery,
       pagination: {
