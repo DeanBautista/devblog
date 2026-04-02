@@ -1,9 +1,33 @@
 const db = require('../config/db');
+const { normalizeSlug } = require('../utils/slug');
 
 const DEFAULT_ARTICLES_PAGE = 1;
 const DEFAULT_ARTICLES_LIMIT = 6;
 const MAX_ARTICLES_LIMIT = 24;
 const MAX_SEARCH_QUERY_LENGTH = 100;
+const MAX_TAG_SLUG_LENGTH = 80;
+
+function normalizeTagNames(tagsValue) {
+  if (!Array.isArray(tagsValue)) {
+    return [];
+  }
+
+  const normalizedTagNames = tagsValue
+    .map((tagValue) => {
+      if (typeof tagValue === 'string') {
+        return tagValue.trim();
+      }
+
+      if (tagValue && typeof tagValue.name === 'string') {
+        return tagValue.name.trim();
+      }
+
+      return '';
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set(normalizedTagNames));
+}
 
 function normalizeProfile(row) {
   if (!row) {
@@ -38,12 +62,89 @@ function normalizeArticles(rows) {
     published_at: row.published_at || null,
     created_at: row.created_at || null,
     cover_image: row.cover_image || null,
+    tags: normalizeTagNames(row.tags),
     author: {
       id: row.author_id ?? null,
       name: row.author_name || 'Unknown Author',
       avatar_url: row.author_avatar_url || null,
     },
   }));
+}
+
+function mapTagRowsByPostId(tagRows) {
+  const tagsByPostId = new Map();
+
+  tagRows.forEach((tagRow) => {
+    const postId = Number.parseInt(tagRow?.post_id, 10);
+    const tagName = typeof tagRow?.name === 'string' ? tagRow.name.trim() : '';
+
+    if (!Number.isInteger(postId) || !tagName) {
+      return;
+    }
+
+    const existingTagNames = tagsByPostId.get(postId);
+    if (!existingTagNames) {
+      tagsByPostId.set(postId, [tagName]);
+      return;
+    }
+
+    if (!existingTagNames.includes(tagName)) {
+      existingTagNames.push(tagName);
+    }
+  });
+
+  return tagsByPostId;
+}
+
+async function attachTagsToArticleRows(rows) {
+  if (!Array.isArray(rows) || rows.length < 1) {
+    return [];
+  }
+
+  const fallbackRows = rows.map((row) => ({
+    ...row,
+    tags: [],
+  }));
+
+  const postIds = rows
+    .map((row) => Number.parseInt(row?.id, 10))
+    .filter((postId) => Number.isInteger(postId));
+
+  if (postIds.length < 1) {
+    return fallbackRows;
+  }
+
+  try {
+    const placeholders = postIds.map(() => '?').join(', ');
+    const [tagRows] = await db.query(
+      `SELECT
+         pt.post_id,
+         t.name
+       FROM post_tags pt
+       INNER JOIN tags t ON t.id = pt.tag_id
+       WHERE pt.post_id IN (${placeholders})
+       ORDER BY t.name ASC`,
+      postIds
+    );
+
+    const tagNamesByPostId = mapTagRowsByPostId(tagRows);
+
+    return rows.map((row) => {
+      const postId = Number.parseInt(row?.id, 10);
+      const tagNames = Number.isInteger(postId) ? tagNamesByPostId.get(postId) ?? [] : [];
+
+      return {
+        ...row,
+        tags: tagNames,
+      };
+    });
+  } catch (error) {
+    if (error?.code === 'ER_NO_SUCH_TABLE') {
+      return fallbackRows;
+    }
+
+    throw error;
+  }
 }
 
 function toPositiveInteger(value, fallbackValue) {
@@ -61,6 +162,27 @@ function normalizeSearchQuery(value) {
   }
 
   return value.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
+}
+
+function normalizeTagSlug(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return normalizeSlug(value.trim().slice(0, MAX_TAG_SLUG_LENGTH));
+}
+
+function mapPublicTagRow(row) {
+  const parsedId = Number.parseInt(row?.id, 10);
+  const tagName = typeof row?.name === 'string' ? row.name.trim() : '';
+  const tagSlug = normalizeTagSlug(row?.slug || tagName);
+
+  return {
+    id: Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null,
+    name: tagName,
+    slug: tagSlug,
+    usage_count: Number.parseInt(row?.usage_count, 10) || 0,
+  };
 }
 
 async function getHomeData(req, res) {
@@ -115,6 +237,7 @@ async function getHomeData(req, res) {
     const [profileRows] = profileResult;
     const [statsRows] = statsResult;
     const [articleRows] = articleResult;
+    const articleRowsWithTags = await attachTagsToArticleRows(articleRows);
     const stats = statsRows[0] || {};
 
     return res.json({
@@ -129,7 +252,7 @@ async function getHomeData(req, res) {
         views: Number(stats.total_views) || 0,
         tags: totalTags,
       },
-      featuredArticles: normalizeArticles(articleRows),
+      featuredArticles: normalizeArticles(articleRowsWithTags),
     });
   } catch (error) {
     return res.status(500).json({
@@ -140,11 +263,54 @@ async function getHomeData(req, res) {
   }
 }
 
+async function getPublicTags(req, res) {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         t.id,
+         t.name,
+         t.slug,
+         COUNT(DISTINCT pt.post_id) AS usage_count
+       FROM tags t
+       INNER JOIN post_tags pt ON pt.tag_id = t.id
+       INNER JOIN posts p ON p.id = pt.post_id
+       WHERE LOWER(p.status) = 'published'
+       GROUP BY t.id, t.name, t.slug
+       ORDER BY t.name ASC`
+    );
+
+    const normalizedTags = rows
+      .map(mapPublicTagRow)
+      .filter((tagRow) => tagRow.name && tagRow.slug && tagRow.usage_count > 0);
+
+    return res.json({
+      success: true,
+      data: normalizedTags,
+    });
+  } catch (error) {
+    if (error?.code === 'ER_NO_SUCH_TABLE') {
+      return res.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load public tags',
+      error: error.message,
+    });
+  }
+}
+
 async function listPublicArticles(req, res) {
   const requestedPage = toPositiveInteger(req.query.page, DEFAULT_ARTICLES_PAGE);
   const rawLimit = toPositiveInteger(req.query.limit, DEFAULT_ARTICLES_LIMIT);
   const limit = Math.min(rawLimit, MAX_ARTICLES_LIMIT);
   const searchQuery = normalizeSearchQuery(req.query.q);
+  const rawTagValue = typeof req.query.tag === 'string' ? req.query.tag : '';
+  const hasTagFilter = rawTagValue.trim().length > 0;
+  const tagSlugFilter = normalizeTagSlug(rawTagValue);
 
   const whereClauses = [`LOWER(p.status) = 'published'`];
   const whereParams = [];
@@ -152,6 +318,21 @@ async function listPublicArticles(req, res) {
   if (searchQuery) {
     whereClauses.push('LOWER(p.title) LIKE ?');
     whereParams.push(`%${searchQuery.toLowerCase()}%`);
+  }
+
+  if (hasTagFilter && !tagSlugFilter) {
+    whereClauses.push('1 = 0');
+  } else if (tagSlugFilter) {
+    whereClauses.push(
+      `EXISTS (
+         SELECT 1
+         FROM post_tags pt_filter
+         INNER JOIN tags t_filter ON t_filter.id = pt_filter.tag_id
+         WHERE pt_filter.post_id = p.id
+           AND t_filter.slug = ?
+       )`
+    );
+    whereParams.push(tagSlugFilter);
   }
 
   const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
@@ -191,10 +372,13 @@ async function listPublicArticles(req, res) {
       [...whereParams, limit, offset]
     );
 
+    const rowsWithTags = await attachTagsToArticleRows(rows);
+
     return res.json({
       success: true,
-      data: normalizeArticles(rows),
+      data: normalizeArticles(rowsWithTags),
       activeSearch: searchQuery,
+      activeTag: tagSlugFilter,
       pagination: {
         page,
         limit,
@@ -205,6 +389,23 @@ async function listPublicArticles(req, res) {
       },
     });
   } catch (error) {
+    if (hasTagFilter && error?.code === 'ER_NO_SUCH_TABLE') {
+      return res.json({
+        success: true,
+        data: [],
+        activeSearch: searchQuery,
+        activeTag: tagSlugFilter,
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Failed to load public articles',
@@ -215,5 +416,6 @@ async function listPublicArticles(req, res) {
 
 module.exports = {
   getHomeData,
+  getPublicTags,
   listPublicArticles,
 };

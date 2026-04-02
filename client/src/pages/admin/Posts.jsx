@@ -70,6 +70,28 @@ function mapReadTime(readingTimeValue) {
     return "0 min read";
 }
 
+function mapTagNames(tagsValue) {
+    if (!Array.isArray(tagsValue)) {
+        return [];
+    }
+
+    const normalizedTagNames = tagsValue
+        .map((tagValue) => {
+            if (typeof tagValue === "string") {
+                return tagValue.trim();
+            }
+
+            if (tagValue && typeof tagValue.name === "string") {
+                return tagValue.name.trim();
+            }
+
+            return "";
+        })
+        .filter(Boolean);
+
+    return Array.from(new Set(normalizedTagNames));
+}
+
 function mapPostForCard(postRow, fallbackIndex) {
     const parsedId = Number.parseInt(postRow?.id, 10);
     const postId = Number.isFinite(parsedId) ? parsedId : fallbackIndex + 1;
@@ -86,6 +108,7 @@ function mapPostForCard(postRow, fallbackIndex) {
         views: Number.isFinite(parsedViews) && parsedViews > 0 ? parsedViews : 0,
         dateMobile: mobile,
         dateDesktop: desktop,
+        tags: mapTagNames(postRow?.tags),
     };
 }
 

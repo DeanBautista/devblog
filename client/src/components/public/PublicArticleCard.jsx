@@ -6,6 +6,28 @@ const FALLBACK_COVER_STYLES = [
   'from-[#73a7b2] via-[#5f95a3] to-[#4e7f90]',
 ];
 
+function normalizeTagNames(tagsValue) {
+  if (!Array.isArray(tagsValue)) {
+    return [];
+  }
+
+  const normalizedTagNames = tagsValue
+    .map((tagValue) => {
+      if (typeof tagValue === 'string') {
+        return tagValue.trim();
+      }
+
+      if (tagValue && typeof tagValue.name === 'string') {
+        return tagValue.name.trim();
+      }
+
+      return '';
+    })
+    .filter(Boolean);
+
+  return Array.from(new Set(normalizedTagNames));
+}
+
 function formatPublishedDate(publishedAt, createdAt) {
   const sourceDate = publishedAt || createdAt;
 
@@ -41,7 +63,7 @@ function getInitials(name) {
   return parts.map((part) => part[0]?.toUpperCase() || '').join('');
 }
 
-export default function PublicArticleCard({ article, index = 0, badgeLabel = null }) {
+export default function PublicArticleCard({ article, index = 0 }) {
   const coverStyle = FALLBACK_COVER_STYLES[index % FALLBACK_COVER_STYLES.length];
   const title = article?.title || 'Untitled post';
   const excerpt = article?.excerpt || 'No excerpt available for this post yet.';
@@ -49,6 +71,8 @@ export default function PublicArticleCard({ article, index = 0, badgeLabel = nul
   const authorAvatar = article?.author?.avatar_url || null;
   const readTime = Number(article?.reading_time) || 0;
   const dateLabel = formatPublishedDate(article?.published_at, article?.created_at);
+  const tagNames = normalizeTagNames(article?.tags);
+  const imageTagNames = tagNames.slice(0, 3);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container shadow-[0_14px_38px_rgba(3,8,24,0.32)] transition-transform duration-300 hover:-translate-y-1.5">
@@ -67,10 +91,17 @@ export default function PublicArticleCard({ article, index = 0, badgeLabel = nul
           </div>
         )}
 
-        {badgeLabel ? (
-          <span className="absolute left-4 top-4 rounded-full border border-background/30 bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface">
-            {badgeLabel}
-          </span>
+        {imageTagNames.length > 0 ? (
+          <div className="absolute left-4 top-4 flex max-w-[calc(100%-2rem)] flex-wrap gap-1.5">
+            {imageTagNames.map((tagName) => (
+              <span
+                key={`${article?.id || article?.slug || title}-image-tag-${tagName}`}
+                className="rounded-full border border-background/30 bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface"
+              >
+                #{tagName}
+              </span>
+            ))}
+          </div>
         ) : null}
       </div>
 

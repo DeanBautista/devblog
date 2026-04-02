@@ -8,7 +8,8 @@ import usePostEditorStore from "../../stores/postEditorStore";
 import api from "../../lib/axios";
 import { normalizeSlug } from "../../utils/slug";
 
-const MAX_POST_TAGS = 25;
+const MIN_POST_TAGS = 1;
+const MAX_POST_TAGS = 2;
 
 export default function PostEditor() {
 
@@ -174,6 +175,12 @@ export default function PostEditor() {
     }, []);
 
     useEffect(() => {
+        if (selectedTagIds.length > MAX_POST_TAGS) {
+            setSelectedTagIds(selectedTagIds.slice(0, MAX_POST_TAGS));
+        }
+    }, [selectedTagIds, setSelectedTagIds]);
+
+    useEffect(() => {
         if (selectedTagIds.length < 1) {
             return;
         }
@@ -221,7 +228,9 @@ export default function PostEditor() {
         if (!normalizedReadTimeMinutes || normalizedReadTimeMinutes === "0") errors.push("Read time");
         if (!editorContent.trim()) errors.push("Main content");
         if (!getResolvedSlug()) errors.push("URL slug");
-        if (selectedTagIds.length > MAX_POST_TAGS) errors.push("Tag selection");
+        if (selectedTagIds.length < MIN_POST_TAGS || selectedTagIds.length > MAX_POST_TAGS) {
+            errors.push(`Tag selection (choose ${MIN_POST_TAGS}-${MAX_POST_TAGS} tags)`);
+        }
 
         if (errors.length > 0) {
             setValidationErrors(errors);
@@ -439,7 +448,7 @@ export default function PostEditor() {
                                         <div>
                                             <h2 className="text-sm font-semibold text-on-surface">Post Tags</h2>
                                             <p className="mt-1 text-xs text-on-surface-variant">
-                                                Add up to {MAX_POST_TAGS} tags to improve categorization.
+                                                Select {MIN_POST_TAGS} to {MAX_POST_TAGS} tags to improve categorization.
                                             </p>
                                         </div>
 

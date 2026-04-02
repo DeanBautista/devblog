@@ -13,6 +13,26 @@ const COVER_STYLES = {
   ivory: "from-[#f4efe2] via-[#e5d6b8] to-[#c9b186]",
 };
 
+function buildMetaLine(tags, readTime) {
+  const normalizedReadTime = typeof readTime === "string" && readTime.trim()
+    ? readTime.trim()
+    : "0 min read";
+
+  if (!Array.isArray(tags) || tags.length < 1) {
+    return normalizedReadTime;
+  }
+
+  const normalizedTags = tags
+    .map((tagName) => (typeof tagName === "string" ? tagName.trim() : ""))
+    .filter(Boolean);
+
+  if (normalizedTags.length < 1) {
+    return normalizedReadTime;
+  }
+
+  return `${normalizedTags.join(" • ")} • ${normalizedReadTime}`;
+}
+
 function PostCover({ variant, title }) {
   const gradient = COVER_STYLES[variant] ?? COVER_STYLES.mint;
 
@@ -121,6 +141,7 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
   const statusClass =
     STATUS_STYLES[post.status] ??
     "border border-outline-variant/30 bg-surface-container text-on-surface";
+  const metadataLine = buildMetaLine(post.tags, post.readTime);
 
   const handleOpenDeleteModal = () => {
     if (!isDeleting) {
@@ -155,7 +176,7 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold leading-snug text-on-surface">{post.title}</h3>
             <p className="mt-1 text-xs text-on-surface-variant">
-              {post.readTime}
+              {metadataLine}
             </p>
           </div>
 
@@ -199,7 +220,7 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
         <div className="min-w-0">
           <h3 className="text-base font-semibold leading-snug text-on-surface">{post.title}</h3>
           <p className="mt-1 text-xs text-on-surface-variant">
-            {post.readTime}
+            {metadataLine}
           </p>
         </div>
 
