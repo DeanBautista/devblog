@@ -210,7 +210,7 @@ export default function SideBar({ children, page }) {
       )}
 
       {/* Children container */}
-      <div className="transition-all duration-300 ease-in-out md:pl-65 mx-5 my-5">
+      <div className="transition-all duration-300 ease-in-out md:pl-65 mx-5 my-8">
         {children}
       </div>
     </div>
