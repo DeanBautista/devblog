@@ -1,41 +1,68 @@
 import { useEffect, useState } from 'react';
 import { getPublicHomeData } from '../../../lib/public';
-import { FALLBACK_HOME_DATA } from './homeConstants';
+import { EMPTY_HOME_DATA } from './homeConstants';
+import { isHomeCacheFresh, readHomeCache, writeHomeCache } from './homeCache';
 
-function mergeHomeData(previousData, responseData) {
+function normalizeHomeData(responseData) {
   return {
-    ...previousData,
+    ...EMPTY_HOME_DATA,
     ...responseData,
-    hero: { ...previousData.hero, ...(responseData.hero || {}) },
-    profile: { ...previousData.profile, ...(responseData.profile || {}) },
-    stats: { ...previousData.stats, ...(responseData.stats || {}) },
+    hero: { ...EMPTY_HOME_DATA.hero, ...(responseData?.hero || {}) },
+    profile: { ...EMPTY_HOME_DATA.profile, ...(responseData?.profile || {}) },
+    stats: { ...EMPTY_HOME_DATA.stats, ...(responseData?.stats || {}) },
     featuredArticles:
-      Array.isArray(responseData.featuredArticles) && responseData.featuredArticles.length > 0
-        ? responseData.featuredArticles
-        : previousData.featuredArticles,
+      Array.isArray(responseData?.featuredArticles) ? responseData.featuredArticles : [],
   };
 }
 
 export default function useHomeData() {
-  const [homeData, setHomeData] = useState(FALLBACK_HOME_DATA);
-  const [loading, setLoading] = useState(true);
+  const [cacheSnapshot] = useState(() => readHomeCache());
+  const hasCachedData = Boolean(cacheSnapshot);
+
+  const [homeData, setHomeData] = useState(() =>
+    hasCachedData ? normalizeHomeData(cacheSnapshot.data) : EMPTY_HOME_DATA
+  );
+  const [loading, setLoading] = useState(() => !hasCachedData);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
+    if (hasCachedData && isHomeCacheFresh(cacheSnapshot)) {
+      setLoading(false);
+      setHasError(false);
+
+      return () => {
+        isMounted = false;
+      };
+    }
+
     async function loadHomeData() {
       try {
         const response = await getPublicHomeData();
 
-        if (!isMounted || !response?.success) {
+        if (!isMounted) {
           return;
         }
 
-        setHomeData((previousData) => mergeHomeData(previousData, response));
+        if (!response?.success) {
+          if (!hasCachedData) {
+            setHasError(true);
+          }
+
+          return;
+        }
+
+        const normalizedData = normalizeHomeData(response);
+
+        setHomeData(normalizedData);
+        writeHomeCache(normalizedData);
+        setHasError(false);
       } catch {
         if (isMounted) {
-          setHasError(true);
+          if (!hasCachedData) {
+            setHasError(true);
+          }
         }
       } finally {
         if (isMounted) {
@@ -49,7 +76,7 @@ export default function useHomeData() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [cacheSnapshot, hasCachedData]);
 
   return {
     homeData,

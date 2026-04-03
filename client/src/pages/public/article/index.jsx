@@ -99,7 +99,7 @@ export default function Article() {
                         Array.from({ length: ARTICLES_PER_PAGE }, (_, index) => (
                             <article
                                 key={`archive-loading-${index}`}
-                                className="h-108 animate-pulse rounded-2xl border border-outline-variant/30 bg-surface-container"
+                                className="h-80 animate-pulse rounded-2xl border border-outline-variant/30 bg-surface-container"
                             />
                         ))}
 

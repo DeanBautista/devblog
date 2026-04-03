@@ -165,7 +165,7 @@ export default function Login() {
                   type="email"
                   placeholder="dev@obsidian.io"
                   className="
-                    flex-1 bg-transparent outline-none
+                    login-auth-input flex-1 bg-transparent outline-none
                     text-sm text-[var(--color-on-surface)]
                     placeholder:text-[var(--color-outline)]
                     caret-[var(--color-primary)]
@@ -209,7 +209,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="
-                    flex-1 bg-transparent outline-none
+                    login-auth-input flex-1 bg-transparent outline-none
                     text-sm text-[var(--color-on-surface)]
                     placeholder:text-[var(--color-outline)]
                     caret-[var(--color-primary)]

@@ -179,37 +179,39 @@ export default function ArticleDetail() {
           {article.title}
         </h1>
 
-        <div className="hero-reveal hero-reveal-delay-3 mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-on-surface-variant md:text-sm">
-          <div className="min-w-0 flex items-center gap-3 pr-2">
+        <div className="hero-reveal hero-reveal-delay-3 mt-6 flex flex-col gap-4.5 text-[11px] text-on-surface-variant sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:text-xs md:text-sm">
+          <div className="min-w-0 flex items-center gap-2.5 sm:gap-3">
             {article.author.avatarUrl ? (
               <img
                 src={article.author.avatarUrl}
                 alt={article.author.name}
-                className="h-10 w-10 rounded-full border border-outline-variant/30 object-cover"
+                className="h-9 w-9 rounded-full border border-outline-variant/30 object-cover sm:h-10 sm:w-10"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container text-xs font-semibold text-on-surface-variant">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container text-xs font-semibold text-on-surface-variant sm:h-10 sm:w-10">
                 {getInitials(article.author.name)}
               </div>
             )}
             <span className="truncate text-sm font-medium text-on-surface">{article.author.name}</span>
           </div>
 
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarDays size={14} aria-hidden="true" />
-            <span>{article.publishedAtLabel}</span>
-          </span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays size={14} aria-hidden="true" />
+              <span>{article.publishedAtLabel}</span>
+            </span>
 
-          <span className="inline-flex items-center gap-1.5">
-            <Clock3 size={14} aria-hidden="true" />
-            <span>{article.readTimeLabel}</span>
-          </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 size={14} aria-hidden="true" />
+              <span>{article.readTimeLabel}</span>
+            </span>
 
-          <span className="inline-flex items-center gap-1.5">
-            <Eye size={14} aria-hidden="true" />
-            <span>{article.viewsLabel}</span>
-          </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Eye size={14} aria-hidden="true" />
+              <span>{article.viewsLabel}</span>
+            </span>
+          </div>
         </div>
 
         <div className="hero-reveal hero-reveal-delay-5 mt-2 pt-0">

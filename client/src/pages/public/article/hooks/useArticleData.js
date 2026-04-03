@@ -4,6 +4,11 @@ import useDebouncedValue from '../../../../hooks/useDebouncedValue';
 import { getPublicArticles, getPublicTags } from '../../../../lib/public';
 import { ARTICLES_PER_PAGE, DEFAULT_PAGINATION, ALL_TAG_OPTION } from '../constants';
 import { normalizePageParam, normalizePagination, normalizeTagSlugParam, normalizePublicTags } from '../helpers';
+import {
+    createArticleListCacheKey,
+    readArticleListCacheEntry,
+    writeArticleListCacheEntry,
+} from '../articleListCache';
 
 export default function useArticleData() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -63,6 +68,35 @@ export default function useArticleData() {
     useEffect(() => {
         let shouldIgnore = false;
 
+        const requestedCacheKey = createArticleListCacheKey({
+            page: currentPage,
+            tagSlug: selectedTagSlug,
+            limit: ARTICLES_PER_PAGE,
+        });
+        const cachedArchiveEntry = readArticleListCacheEntry(requestedCacheKey);
+
+        if (cachedArchiveEntry) {
+            setArticles(cachedArchiveEntry.articles);
+            setPagination(cachedArchiveEntry.pagination);
+            setLoadError('');
+            setIsLoading(false);
+
+            if (cachedArchiveEntry.pagination.page !== currentPage) {
+                const nextParams = new URLSearchParams();
+
+                if (selectedTagSlug) {
+                    nextParams.set('tag', selectedTagSlug);
+                }
+
+                nextParams.set('page', String(cachedArchiveEntry.pagination.page));
+                setSearchParams(nextParams);
+            }
+
+            return () => {
+                shouldIgnore = true;
+            };
+        }
+
         async function loadArticles() {
             setIsLoading(true);
             setLoadError('');
@@ -85,6 +119,24 @@ export default function useArticleData() {
 
                 setArticles(rows);
                 setPagination(nextPagination);
+
+                writeArticleListCacheEntry(requestedCacheKey, {
+                    articles: rows,
+                    pagination: nextPagination,
+                });
+
+                const normalizedPageCacheKey = createArticleListCacheKey({
+                    page: nextPagination.page,
+                    tagSlug: selectedTagSlug,
+                    limit: ARTICLES_PER_PAGE,
+                });
+
+                if (normalizedPageCacheKey !== requestedCacheKey) {
+                    writeArticleListCacheEntry(normalizedPageCacheKey, {
+                        articles: rows,
+                        pagination: nextPagination,
+                    });
+                }
 
                 if (nextPagination.page !== currentPage) {
                     const nextParams = new URLSearchParams();
