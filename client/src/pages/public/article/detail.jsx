@@ -1,6 +1,7 @@
-import { ArrowLeft, ArrowRight, CalendarDays, Clock3, Eye, Share2, ThumbsUp } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, CalendarDays, Clock3, Eye, Github, Linkedin, Share2, ThumbsUp } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import DocumentRenderer from '../../../components/document_renderer/DocumentRenderer';
+import PublicArticleCard from '../../../components/public/PublicArticleCard';
 import useArticleDetail from './hooks/useArticleDetail';
 
 function getInitials(name) {
@@ -51,9 +52,22 @@ function ArticleDetailSkeleton() {
   );
 }
 
+function RecommendationsSkeleton() {
+  return (
+    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 3 }, (_, index) => (
+        <article
+          key={`recommended-loading-${index}`}
+          className="h-108 animate-pulse rounded-2xl border border-outline-variant/30 bg-surface-container"
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function ArticleDetail() {
   const navigate = useNavigate();
-  const { article, isLoading, loadError, isNotFound } = useArticleDetail();
+  const { article, recommendedArticles, isLoading, isRecommendedLoading, loadError, isNotFound } = useArticleDetail();
 
   const handleBackClick = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -103,6 +117,8 @@ export default function ArticleDetail() {
 
   const hasContent = typeof article.content === 'string' && article.content.trim().length > 0;
   const nextPostTitle = article.nextPost?.title || 'No next post available';
+  const authorBio =
+    'Senior Systems Architect specializing in low-level obsidian frameworks and high-concurrency developer tooling. Obsessed with terminal aesthetics and minimalist infrastructure.';
 
   return (
     <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14">
@@ -218,18 +234,100 @@ export default function ArticleDetail() {
             <button
               type="button"
               disabled
-              className="w-full rounded-xl border border-outline-variant/35 bg-surface-container-low px-4 py-3 text-left disabled:cursor-default disabled:opacity-80 sm:w-auto sm:max-w-[18rem]"
+              className="group relative flex items-center justify-between gap-4 w-full overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-low px-5 py-4 text-left disabled:cursor-default sm:w-auto sm:min-w-[20rem] sm:max-w-[22rem]"
             >
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-on-surface-variant">
-                Next Post
-              </span>
-              <span className="mt-1.5 inline-flex items-center gap-2 text-sm font-semibold text-on-surface">
-                {nextPostTitle}
-                <ArrowRight size={14} aria-hidden="true" />
-              </span>
+              <div className="flex flex-col gap-1 min-w-0">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">
+                  <ArrowRight size={10} aria-hidden="true" />
+                  Next Post
+                </span>
+                <span className="truncate text-sm font-semibold text-on-surface">
+                  {nextPostTitle}
+                </span>
+              </div>
+
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container text-on-surface-variant">
+                <ArrowRight size={15} aria-hidden="true" />
+              </div>
             </button>
           </div>
         </div>
+
+       <section className="hero-reveal hero-reveal-delay-5 mt-14 rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-6 sm:px-8 sm:py-7">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+            {article.author.avatarUrl ? (
+              <img
+                src={article.author.avatarUrl}
+                alt={article.author.name}
+                className="h-16 w-16 rounded-full border border-outline-variant/30 object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container text-lg font-semibold text-on-surface-variant">
+                {getInitials(article.author.name)}
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-on-surface-variant">Author</p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-on-surface sm:text-4xl">{article.author.name}</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-on-surface-variant sm:text-base">{authorBio}</p>
+
+              <div className="mt-5 flex flex-wrap justify-center gap-2.5 sm:justify-start">
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container px-4 py-2 text-xs font-medium text-on-surface-variant disabled:cursor-default disabled:opacity-90"
+                >
+                  <Github size={14} aria-hidden="true" />
+                  <span>GitHub</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container px-4 py-2 text-xs font-medium text-on-surface-variant disabled:cursor-default disabled:opacity-90"
+                >
+                  <Linkedin size={14} aria-hidden="true" />
+                  <span>LinkedIn</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="hero-reveal hero-reveal-delay-5 mt-14">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-3xl font-semibold tracking-tight text-on-surface sm:text-4xl">You Might Also Like</h2>
+            <Link
+              to="/article"
+              className="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface"
+            >
+              <span>View all articles</span>
+              <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="mt-7">
+            {isRecommendedLoading ? (
+              <RecommendationsSkeleton />
+            ) : recommendedArticles.length > 0 ? (
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {recommendedArticles.map((recommendedArticle, index) => (
+                  <PublicArticleCard
+                    key={recommendedArticle.id || recommendedArticle.slug || index}
+                    article={recommendedArticle}
+                    index={index}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-2xl border border-outline-variant/30 bg-surface-container px-5 py-4 text-sm text-on-surface-variant">
+                No additional articles to recommend right now.
+              </p>
+            )}
+          </div>
+        </section>
       </article>
     </section>
   );
