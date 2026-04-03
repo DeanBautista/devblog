@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { EDITOR_VIEWS } from "../../../../components/document_renderer/postEditorConstants";
 import {
     createAdminPost,
@@ -13,6 +13,12 @@ import { getAdminTags } from "../../../../lib/tags";
 import usePostEditorStore from "../../../../stores/postEditorStore";
 import { normalizeSlug } from "../../../../utils/slug";
 import { MIN_POST_TAGS, MAX_POST_TAGS } from "../constants";
+
+const SLUG_EDIT_PATH_PATTERN = /^\/admin\/newposts\/(?!id\/)[^/]+\/?$/;
+const LEAVE_SLUG_EDIT_PROMPT_MESSAGE =
+    "Leaving this editor will discard unsaved changes. Continue?";
+const POST_EDITOR_DRAFT_STORAGE_KEY = "post-editor-draft";
+const RELOAD_DRAFT_RESET_FLAG_KEY = "post-editor-clear-on-reload";
 
 function normalizeIncomingTagIds(value) {
     if (!Array.isArray(value)) {
@@ -62,6 +68,14 @@ function formatLastEditedLabel(value, isEditMode) {
     })}`;
 }
 
+function isSlugEditPath(pathname) {
+    if (typeof pathname !== "string") {
+        return false;
+    }
+
+    return SLUG_EDIT_PATH_PATTERN.test(pathname);
+}
+
 export default function usePostEditorForm() {
     const navigate = useNavigate();
     const { slug: routeSlugParam, postId: routePostIdParam } = useParams();
@@ -91,6 +105,7 @@ export default function usePostEditorForm() {
     const titleTextareaRef = useRef(null);
     const wasEditModeRef = useRef(false);
     const uploadSequenceRef = useRef(0);
+    const isBypassingNavigationRef = useRef(false);
 
     const [isCoverUploading, setIsCoverUploading] = useState(false);
     const [coverUploadError, setCoverUploadError] = useState("");
@@ -184,6 +199,76 @@ export default function usePostEditorForm() {
             fileInputRef.current.value = "";
         }
     }, []);
+
+    const navigateWithBypass = useCallback(
+        (to, options) => {
+            isBypassingNavigationRef.current = true;
+
+            try {
+                const navigationResult = navigate(to, options);
+
+                Promise.resolve(navigationResult).finally(() => {
+                    isBypassingNavigationRef.current = false;
+                });
+            } catch (error) {
+                isBypassingNavigationRef.current = false;
+                throw error;
+            }
+        },
+        [navigate]
+    );
+
+    const clearPersistedEditorDraft = useCallback(() => {
+        resetDraft();
+
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        try {
+            window.sessionStorage.removeItem(POST_EDITOR_DRAFT_STORAGE_KEY);
+            window.sessionStorage.removeItem(RELOAD_DRAFT_RESET_FLAG_KEY);
+        } catch {
+            // Ignore storage cleanup failures.
+        }
+    }, [resetDraft]);
+
+    const shouldBlockSlugEditLeave = useCallback(({ currentLocation, nextLocation }) => {
+        if (isBypassingNavigationRef.current) {
+            return false;
+        }
+
+        const currentPathname = String(currentLocation?.pathname ?? "");
+        const nextPathname = String(nextLocation?.pathname ?? "");
+
+        if (!isSlugEditPath(currentPathname)) {
+            return false;
+        }
+
+        if (nextPathname === "/admin/login") {
+            return false;
+        }
+
+        return currentPathname !== nextPathname;
+    }, []);
+
+    const leaveRouteBlocker = useBlocker(shouldBlockSlugEditLeave);
+
+    useEffect(() => {
+        if (leaveRouteBlocker.state !== "blocked") {
+            return;
+        }
+
+        const shouldContinue = window.confirm(LEAVE_SLUG_EDIT_PROMPT_MESSAGE);
+
+        if (shouldContinue) {
+            clearPersistedEditorDraft();
+            leaveRouteBlocker.proceed();
+            return;
+        }
+
+        leaveRouteBlocker.reset();
+    }, [clearPersistedEditorDraft, leaveRouteBlocker]);
 
     useEffect(() => {
         if (isEditMode) {
@@ -281,7 +366,7 @@ export default function usePostEditorForm() {
         let shouldIgnore = false;
 
         const redirectToHome = () => {
-            navigate("/", { replace: true });
+            navigateWithBypass("/", { replace: true });
         };
 
         const loadEditablePost = async () => {
@@ -381,7 +466,7 @@ export default function usePostEditorForm() {
         isEditMode,
         isIdRoute,
         isSlugRoute,
-        navigate,
+        navigateWithBypass,
         normalizedRoutePostId,
         normalizedRouteSlug,
         setEditorContent,
@@ -521,7 +606,7 @@ export default function usePostEditorForm() {
         }
 
         resetFormState();
-        navigate("/admin/newposts", { replace: true });
+        navigateWithBypass("/admin/newposts", { replace: true });
     };
 
     const handlePublish = () => {
@@ -589,7 +674,7 @@ export default function usePostEditorForm() {
                         nextSlug &&
                         nextSlug !== normalizedRouteSlug
                     ) {
-                        navigate(`/admin/newposts/id/${nextPostId}`, { replace: true });
+                        navigateWithBypass(`/admin/newposts/id/${nextPostId}`, { replace: true });
                     }
                 }
 
@@ -643,7 +728,7 @@ export default function usePostEditorForm() {
                         nextSlug &&
                         nextSlug !== normalizedRouteSlug
                     ) {
-                        navigate(`/admin/newposts/id/${nextPostId}`, { replace: true });
+                        navigateWithBypass(`/admin/newposts/id/${nextPostId}`, { replace: true });
                     }
                 }
 

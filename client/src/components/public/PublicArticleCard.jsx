@@ -123,7 +123,7 @@ export default function PublicArticleCard({ article, index = 0 }) {
           {excerpt}
         </p>
 
-        <div className="mt-6 flex items-center justify-between gap-3">
+        <div className="mt-auto flex items-center justify-between gap-3 pt-6">
           <div className="min-w-0 flex items-center gap-2.5">
             {authorAvatar ? (
               <img
