@@ -78,6 +78,19 @@ export function writeHomeCache(data) {
   }
 }
 
+export function invalidateHomeCache() {
+  if (!canUseStorage()) {
+    return false;
+  }
+
+  try {
+    window.localStorage.removeItem(HOME_CACHE_STORAGE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function isHomeCacheFresh(cacheValue, now = Date.now()) {
   if (!cacheValue || !Number.isFinite(cacheValue.fetchedAt) || cacheValue.fetchedAt <= 0) {
     return false;

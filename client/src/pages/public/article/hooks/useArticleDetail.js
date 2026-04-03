@@ -15,6 +15,7 @@ import {
   markArticleViewed,
   setArticleLiked,
 } from '../engagementStorage';
+import { invalidateHomeCache } from '../../home/homeCache';
 
 function normalizeTagNames(tagsValue) {
   if (!Array.isArray(tagsValue)) {
@@ -201,6 +202,7 @@ export default function useArticleDetail() {
               };
             });
 
+            invalidateHomeCache();
             markArticleViewed(articleSlug);
           } catch {
             // Keep rendering even if view tracking request fails.
