@@ -151,12 +151,34 @@ body {
   80%      { transform: translateX(4px); }
 }
 
+@keyframes article-like-bounce {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.22);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.article-like-bounce {
+  animation: article-like-bounce 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 .login-error-banner {
   animation: login-slide-down 0.3s ease-out, login-shake 0.4s ease-out 0.15s;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .login-error-banner {
+    animation: none;
+  }
+
+  .article-like-bounce {
     animation: none;
   }
 }

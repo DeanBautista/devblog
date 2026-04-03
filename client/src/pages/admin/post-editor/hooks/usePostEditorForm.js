@@ -70,6 +70,8 @@ export default function usePostEditorForm() {
     const postSlug = usePostEditorStore((state) => state.postSlug);
     const postExcerpt = usePostEditorStore((state) => state.postExcerpt);
     const editorContent = usePostEditorStore((state) => state.editorContent);
+    const coverImageUrl = usePostEditorStore((state) => state.coverImageUrl);
+    const hasUploadedCoverInSession = usePostEditorStore((state) => state.hasUploadedCoverInSession);
     const editorView = usePostEditorStore((state) => state.editorView);
     const readTimeMinutes = usePostEditorStore((state) => state.readTimeMinutes);
     const selectedTagIds = usePostEditorStore((state) => state.selectedTagIds);
@@ -77,6 +79,8 @@ export default function usePostEditorForm() {
     const setPostSlug = usePostEditorStore((state) => state.setPostSlug);
     const setPostExcerpt = usePostEditorStore((state) => state.setPostExcerpt);
     const setEditorContent = usePostEditorStore((state) => state.setEditorContent);
+    const setCoverImageUrl = usePostEditorStore((state) => state.setCoverImageUrl);
+    const setHasUploadedCoverInSession = usePostEditorStore((state) => state.setHasUploadedCoverInSession);
     const setEditorView = usePostEditorStore((state) => state.setEditorView);
     const setReadTimeMinutes = usePostEditorStore((state) => state.setReadTimeMinutes);
     const setSelectedTagIds = usePostEditorStore((state) => state.setSelectedTagIds);
@@ -88,8 +92,6 @@ export default function usePostEditorForm() {
     const wasEditModeRef = useRef(false);
     const uploadSequenceRef = useRef(0);
 
-    const [coverImageUrl, setCoverImageUrl] = useState(null);
-    const [hasUploadedCoverInSession, setHasUploadedCoverInSession] = useState(false);
     const [isCoverUploading, setIsCoverUploading] = useState(false);
     const [coverUploadError, setCoverUploadError] = useState("");
     const [isExcerptModalOpen, setIsExcerptModalOpen] = useState(false);
@@ -193,15 +195,28 @@ export default function usePostEditorForm() {
             resetDraft();
             clearTransientFormState();
             wasEditModeRef.current = false;
+
+            setEditingPostId(null);
+            setPublishDateValue(null);
+            setLastEditedAt(null);
+            setCoverImageUrl(null);
+            setHasUploadedCoverInSession(false);
+            setCoverUploadError("");
+
+            return;
         }
 
         setEditingPostId(null);
         setPublishDateValue(null);
         setLastEditedAt(null);
-        setCoverImageUrl(null);
-        setHasUploadedCoverInSession(false);
         setCoverUploadError("");
-    }, [clearTransientFormState, isEditMode, resetDraft]);
+    }, [
+        clearTransientFormState,
+        isEditMode,
+        resetDraft,
+        setCoverImageUrl,
+        setHasUploadedCoverInSession,
+    ]);
 
     useEffect(() => {
         if (titleTextareaRef.current) {
@@ -374,6 +389,8 @@ export default function usePostEditorForm() {
         setPostExcerpt,
         setPostSlug,
         setPostTitle,
+        setCoverImageUrl,
+        setHasUploadedCoverInSession,
         setReadTimeMinutes,
         setSelectedTagIds,
     ]);

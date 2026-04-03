@@ -14,6 +14,7 @@ export default function SideBar({ children, page }) {
   const postSlug = usePostEditorStore((state) => state.postSlug);
   const postExcerpt = usePostEditorStore((state) => state.postExcerpt);
   const editorContent = usePostEditorStore((state) => state.editorContent);
+  const coverImageUrl = usePostEditorStore((state) => state.coverImageUrl);
   const readTimeMinutes = usePostEditorStore((state) => state.readTimeMinutes);
   const selectedTagIds = usePostEditorStore((state) => state.selectedTagIds);
 
@@ -25,6 +26,7 @@ export default function SideBar({ children, page }) {
     postSlug.trim().length > 0 ||
     postExcerpt.trim().length > 0 ||
     editorContent.trim().length > 0 ||
+    (typeof coverImageUrl === "string" && coverImageUrl.trim().length > 0) ||
     readTimeMinutes.trim() !== POST_EDITOR_DEFAULTS.readTimeMinutes ||
     selectedTagIds.length > 0;
 

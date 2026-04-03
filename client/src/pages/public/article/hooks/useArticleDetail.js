@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getPublicArticleBySlug, getPublicArticles } from '../../../../lib/public';
+import {
+  getPublicArticleBySlug,
+  getPublicArticles,
+  recordPublicArticleView,
+  togglePublicArticleLike,
+} from '../../../../lib/public';
 import { formatPublishedDate } from '../../../../utils/document-transformer';
 import { normalizeSlug } from '../../../../utils/slug';
+import { ARTICLE_LIKE_ACTIONS } from '../constants';
+import {
+  hasViewedArticle,
+  isArticleLiked,
+  markArticleViewed,
+  setArticleLiked,
+} from '../engagementStorage';
 
 function normalizeTagNames(tagsValue) {
   if (!Array.isArray(tagsValue)) {
@@ -98,10 +110,22 @@ function normalizeArticleDetail(articleValue) {
     },
     publishedAtLabel: dateLabel || 'Recently published',
     readTimeLabel: `${readTime} min read`,
+    views,
+    likes,
     viewsLabel: formatCompactLabel(views, 'views'),
     likesLabel: formatCompactLabel(likes, 'likes'),
     nextPost: normalizeNextPost(article.nextPost),
   };
+}
+
+function resolveCounterValue(value, fallbackValue) {
+  const parsedValue = Number(value);
+
+  if (Number.isFinite(parsedValue) && parsedValue >= 0) {
+    return parsedValue;
+  }
+
+  return fallbackValue;
 }
 
 export default function useArticleDetail() {
@@ -114,6 +138,14 @@ export default function useArticleDetail() {
   const [isRecommendedLoading, setIsRecommendedLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isNotFound, setIsNotFound] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLikePending, setIsLikePending] = useState(false);
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const activeArticleSlugRef = useRef('');
+
+  useEffect(() => {
+    activeArticleSlugRef.current = article?.slug || '';
+  }, [article?.slug]);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -123,6 +155,9 @@ export default function useArticleDetail() {
       setLoadError('');
       setIsNotFound(false);
       setArticle(null);
+      setIsLiked(false);
+      setIsLikePending(false);
+      setIsLikeAnimating(false);
 
       if (!normalizedRouteSlug) {
         setIsLoading(false);
@@ -140,7 +175,37 @@ export default function useArticleDetail() {
           throw new Error('Article not found');
         }
 
-        setArticle(normalizeArticleDetail(response.data));
+        const normalizedArticle = normalizeArticleDetail(response.data);
+        const articleSlug = normalizedArticle.slug || normalizedRouteSlug;
+
+        setArticle(normalizedArticle);
+        setIsLiked(isArticleLiked(articleSlug));
+
+        if (articleSlug && !hasViewedArticle(articleSlug)) {
+          try {
+            const viewResponse = await recordPublicArticleView(articleSlug);
+
+            if (shouldIgnore) return;
+
+            const nextViews = resolveCounterValue(viewResponse?.data?.views, normalizedArticle.views);
+
+            setArticle((previousArticle) => {
+              if (!previousArticle || previousArticle.slug !== articleSlug) {
+                return previousArticle;
+              }
+
+              return {
+                ...previousArticle,
+                views: nextViews,
+                viewsLabel: formatCompactLabel(nextViews, 'views'),
+              };
+            });
+
+            markArticleViewed(articleSlug);
+          } catch {
+            // Keep rendering even if view tracking request fails.
+          }
+        }
       } catch (error) {
         if (shouldIgnore) return;
 
@@ -164,6 +229,72 @@ export default function useArticleDetail() {
       shouldIgnore = true;
     };
   }, [normalizedRouteSlug]);
+
+  const handleLikeToggle = useCallback(async () => {
+    const articleSlug = article?.slug;
+
+    if (!articleSlug || isLikePending) {
+      return;
+    }
+
+    const currentLiked = isLiked;
+    const nextAction = currentLiked ? ARTICLE_LIKE_ACTIONS.UNLIKE : ARTICLE_LIKE_ACTIONS.LIKE;
+    const baselineLikes = Math.max(0, Number(article?.likes) || 0);
+
+    setIsLikePending(true);
+
+    try {
+      const likeResponse = await togglePublicArticleLike(articleSlug, nextAction);
+      const responseLiked =
+        typeof likeResponse?.data?.liked === 'boolean' ? likeResponse.data.liked : !currentLiked;
+      const fallbackLikes = Math.max(
+        0,
+        baselineLikes + (nextAction === ARTICLE_LIKE_ACTIONS.LIKE ? 1 : -1)
+      );
+      const nextLikes = resolveCounterValue(likeResponse?.data?.likes, fallbackLikes);
+
+      if (activeArticleSlugRef.current !== articleSlug) {
+        return;
+      }
+
+      setArticle((previousArticle) => {
+        if (!previousArticle || previousArticle.slug !== articleSlug) {
+          return previousArticle;
+        }
+
+        return {
+          ...previousArticle,
+          likes: nextLikes,
+          likesLabel: formatCompactLabel(nextLikes, 'likes'),
+        };
+      });
+
+      setIsLiked(responseLiked);
+      setArticleLiked(articleSlug, responseLiked);
+
+      if (responseLiked !== currentLiked) {
+        setIsLikeAnimating(true);
+      }
+    } catch {
+      // Keep existing state if like request fails.
+    } finally {
+      setIsLikePending(false);
+    }
+  }, [article?.likes, article?.slug, isLikePending, isLiked]);
+
+  useEffect(() => {
+    if (!isLikeAnimating || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsLikeAnimating(false);
+    }, 420);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isLikeAnimating]);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -220,5 +351,9 @@ export default function useArticleDetail() {
     isRecommendedLoading,
     loadError,
     isNotFound,
+    isLiked,
+    isLikePending,
+    isLikeAnimating,
+    handleLikeToggle,
   };
 }

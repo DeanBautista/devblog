@@ -14,3 +14,13 @@ export const DEFAULT_PAGINATION = {
     hasPrev: false,
     hasNext: false,
 };
+
+export const ARTICLE_LIKE_ACTIONS = {
+    LIKE: 'like',
+    UNLIKE: 'unlike',
+};
+
+export const ARTICLE_ENGAGEMENT_STORAGE_KEYS = {
+    viewedArticles: 'devblog.public.article.viewed.v1',
+    likedArticles: 'devblog.public.article.liked.v1',
+};

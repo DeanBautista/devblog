@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, ThumbsUp, Edit, Trash2 } from "lucide-react";
 
 const STATUS_STYLES = {
   PUBLISHED: "border border-emerald-400/25 bg-emerald-500/10 text-emerald-300",
@@ -87,7 +87,7 @@ export function PostCardSkeleton() {
         </div>
       </div>
 
-      <div className="hidden items-center gap-4 xl:grid xl:grid-cols-[84px_minmax(0,1.7fr)_112px_112px_108px_70px]">
+      <div className="hidden items-center gap-4 xl:grid xl:grid-cols-[84px_minmax(0,1.7fr)_112px_112px_112px_108px_70px]">
         <span className="h-12 w-14 rounded-lg bg-surface-container" />
 
         <div className="min-w-0">
@@ -96,6 +96,7 @@ export function PostCardSkeleton() {
         </div>
 
         <span className="h-6 w-16 rounded-full bg-surface-container" />
+        <span className="h-4 w-16 rounded-md bg-surface-container" />
         <span className="h-4 w-16 rounded-md bg-surface-container" />
         <span className="h-8 w-14 rounded-md bg-surface-container" />
 
@@ -240,11 +241,16 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
             <span>{post.views.toLocaleString()}</span>
           </span>
 
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-surface-container px-2 py-1">
+            <ThumbsUp size={13} />
+            <span>{Number(post.likes || 0).toLocaleString()}</span>
+          </span>
+
           <span className="rounded-md bg-surface-container px-2 py-1">{post.dateMobile}</span>
         </div>
       </div>
 
-      <div className="hidden items-center gap-4 xl:grid xl:grid-cols-[84px_minmax(0,1.7fr)_112px_112px_108px_70px]">
+      <div className="hidden items-center gap-4 xl:grid xl:grid-cols-[84px_minmax(0,1.7fr)_112px_112px_112px_108px_70px]">
         <PostCover variant={post.coverVariant} title={post.title} imageSrc={post.coverImage} />
 
         <div className="min-w-0">
@@ -261,6 +267,11 @@ export default function PostCard({ post, onDelete, isDeleting = false }) {
         <span className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant">
           <Eye size={14} />
           <span>{post.views.toLocaleString()}</span>
+        </span>
+
+        <span className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant">
+          <ThumbsUp size={14} />
+          <span>{Number(post.likes || 0).toLocaleString()}</span>
         </span>
 
         <span className="whitespace-pre-line text-xs leading-5 text-on-surface-variant">{post.dateDesktop}</span>

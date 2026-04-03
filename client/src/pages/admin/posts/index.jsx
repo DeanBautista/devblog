@@ -90,11 +90,12 @@ export default function Posts() {
                 </div>
 
                 <div>
-                    <div className="hidden grid-cols-[84px_minmax(0,1.7fr)_112px_112px_108px_70px] items-center gap-4 px-5 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 xl:grid">
+                    <div className="hidden grid-cols-[84px_minmax(0,1.7fr)_112px_112px_112px_108px_70px] items-center gap-4 px-5 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant/80 xl:grid">
                         <span>Cover</span>
                         <span>Title</span>
                         <span>Status</span>
                         <span>Views</span>
+                        <span>Likes</span>
                         <span>Date</span>
                         <span>Actions</span>
                     </div>

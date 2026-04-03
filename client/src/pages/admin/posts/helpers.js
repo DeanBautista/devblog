@@ -76,6 +76,7 @@ export function mapPostForCard(postRow, fallbackIndex) {
     const postId = Number.isFinite(parsedId) ? parsedId : fallbackIndex + 1;
     const coverIndex = ((postId - 1) % COVER_VARIANTS.length + COVER_VARIANTS.length) % COVER_VARIANTS.length;
     const parsedViews = Number.parseInt(postRow?.views, 10);
+    const parsedLikes = Number.parseInt(postRow?.likes, 10);
     const { mobile, desktop } = formatPostDates(postRow?.published_at ?? postRow?.created_at);
     const rawSlug = typeof postRow?.slug === "string" ? postRow.slug.trim() : "";
     const coverImage =
@@ -92,6 +93,7 @@ export function mapPostForCard(postRow, fallbackIndex) {
         readTime: mapReadTime(postRow?.reading_time),
         status: mapStatus(postRow?.status),
         views: Number.isFinite(parsedViews) && parsedViews > 0 ? parsedViews : 0,
+        likes: Number.isFinite(parsedLikes) && parsedLikes > 0 ? parsedLikes : 0,
         dateMobile: mobile,
         dateDesktop: desktop,
         tags: mapTagNames(postRow?.tags),
