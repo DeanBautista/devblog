@@ -2,8 +2,12 @@
 import axios from 'axios';
 import useAuthStore from '../stores/authStore';
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : 'https://deandevblog.onrender.com');
+
 const api = axios.create({
-  baseURL: import.meta.env.PUBLIC_API_URL || 'http://localhost:3000',
+  baseURL: API_BASE_URL,
   timeout: 5000,
   withCredentials: true,
 });
@@ -38,15 +42,19 @@ api.interceptors.response.use(
       original._retry = true;
 
       try {
+        const baseUrl =
+          typeof api.defaults.baseURL === 'string' ? api.defaults.baseURL.replace(/\/$/, '') : '';
+        const refreshEndpoint = baseUrl ? `${baseUrl}/api/auth/refresh` : '/api/auth/refresh';
+
         const res = await axios.post(
-          'http://localhost:3000/api/auth/refresh',
+          refreshEndpoint,
           {},
           { withCredentials: true }
         );
-        
 
         const newAccessToken = res.data.accessToken;
         useAuthStore.setState({ accessToken: newAccessToken });
+        original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(original);
       } catch {
