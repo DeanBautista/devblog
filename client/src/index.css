@@ -11,6 +11,17 @@ body {
   background-color: #0b1326;
 }
 
+/* Keep login input styling consistent when browser autofills saved credentials. */
+.login-auth-input:-webkit-autofill,
+.login-auth-input:-webkit-autofill:hover,
+.login-auth-input:-webkit-autofill:focus,
+.login-auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-on-surface) !important;
+  caret-color: var(--color-primary);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-container-high) inset;
+  box-shadow: 0 0 0 1000px var(--color-surface-container-high) inset;
+}
+
 @theme {
   /* Primary */
   --color-primary:            #c0c1ff;

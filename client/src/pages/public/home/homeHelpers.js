@@ -12,7 +12,12 @@ export function formatMetricValue(value) {
   return `${numericValue}`;
 }
 
-export function getFirstName(name, fallbackName = 'Alex Vane') {
-  const fullName = name || fallbackName;
-  return fullName.split(' ')[0] || fullName;
+export function getFirstName(name, fallbackName = '') {
+  const fullName = typeof name === 'string' ? name.trim() : '';
+
+  if (!fullName) {
+    return fallbackName;
+  }
+
+  return fullName.split(' ')[0] || fallbackName;
 }

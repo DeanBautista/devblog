@@ -2,6 +2,35 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import PublicArticleCard from './PublicArticleCard';
 
+function LatestPostsSkeletonGrid() {
+  return (
+    <div className="mt-10 grid w-full grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 3 }, (_, index) => (
+        <article
+          key={`latest-post-skeleton-${index}`}
+          className="overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-low/70 animate-pulse"
+        >
+          <div className="h-44 bg-surface-container" />
+
+          <div className="px-5 py-5">
+            <span className="block h-9 w-11/12 rounded-md bg-surface-container" />
+            <span className="mt-2.5 block h-3 w-4/5 rounded-md bg-surface-container" />
+            <span className="mt-2 block h-3 w-3/4 rounded-md bg-surface-container" />
+
+            <div className="mt-8 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="h-9 w-9 rounded-full bg-surface-container" />
+                <span className="h-3 w-24 rounded-md bg-surface-container" />
+              </div>
+              <span className="h-3 w-16 rounded-md bg-surface-container" />
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export default function LatestPostsSection({ articles = [], isLoading = false }) {
   const visibleArticles = Array.isArray(articles) ? articles.slice(0, 3) : [];
 
@@ -19,23 +48,21 @@ export default function LatestPostsSection({ articles = [], isLoading = false })
         </p>
       </header>
 
-      {isLoading && visibleArticles.length === 0 && (
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
-          Loading latest posts...
-        </p>
+      {isLoading ? (
+        <LatestPostsSkeletonGrid />
+      ) : (
+        <div className="mt-10 grid w-full grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {visibleArticles.map((article, index) => (
+            <div
+              key={article.id || article.slug || index}
+              className="hero-reveal min-w-0 w-full"
+              style={{ animationDelay: `${220 + index * 120}ms` }}
+            >
+              <PublicArticleCard article={article} index={index} />
+            </div>
+          ))}
+        </div>
       )}
-
-      <div className="mt-10 grid w-full grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {visibleArticles.map((article, index) => (
-          <div
-            key={article.id || article.slug || index}
-            className="hero-reveal min-w-0 w-full"
-            style={{ animationDelay: `${220 + index * 120}ms` }}
-          >
-            <PublicArticleCard article={article} index={index} />
-          </div>
-        ))}
-      </div>
 
       {visibleArticles.length === 0 && !isLoading && (
         <p className="mt-6 rounded-2xl border border-outline-variant/30 bg-surface-container px-5 py-4 text-sm text-on-surface-variant">

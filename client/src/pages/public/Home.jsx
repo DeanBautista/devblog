@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import LatestPostsSection from '../../components/public/LatestPostsSection';
+import PublicFooter from '../../components/public/PublicFooter';
 import HomeHeroSection from '../../components/public/home/HomeHeroSection';
 import { HOME_SCROLL_PADDING_TOP } from './home/homeConstants';
 import { formatMetricValue, getFirstName } from './home/homeHelpers';
@@ -36,8 +37,11 @@ export default function Home() {
       />
 
       {/* ── Section 2: Latest Posts ───────────────────────────────────────── */}
-      <section style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}>
-        <LatestPostsSection articles={homeData.featuredArticles} isLoading={loading} />
+      <section className="flex flex-col" style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}>
+        <div className="flex-1">
+          <LatestPostsSection articles={homeData.featuredArticles} isLoading={loading} />
+        </div>
+        <PublicFooter />
       </section>
     </>
   );

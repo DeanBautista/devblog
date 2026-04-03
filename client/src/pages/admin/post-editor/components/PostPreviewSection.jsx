@@ -28,19 +28,19 @@ export default function PostPreviewSection({
                     {hasPostTitle ? postTitle : "Untitled Post"}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="flex items-center gap-3">
+                <div className="flex w-full flex-col gap-4.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+                    <div className="min-w-0 flex items-center gap-2.5 sm:gap-3">
                         <img
                             src={user?.avatar_url}
                             alt={user?.name}
-                            className="w-10 h-10 rounded-full object-cover bg-surface-container"
+                            className="h-9 w-9 rounded-full object-cover bg-surface-container sm:h-10 sm:w-10"
                         />
-                        <span className="text-sm md:text-base font-medium text-on-surface">
+                        <span className="truncate text-sm font-medium text-on-surface md:text-base">
                             {user?.name}
                         </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm text-secondary">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-secondary sm:gap-x-4 sm:text-xs md:text-sm">
                         <span className="flex items-center gap-1.5">
                             <CalendarIcon className="w-4 h-4" />
                             {publishDateDisplayLabel}
