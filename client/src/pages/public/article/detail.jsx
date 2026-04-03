@@ -1,8 +1,13 @@
-import { ArrowLeft, ArrowRight, CalendarDays, Clock3, Eye, Github, Linkedin, Share2, ThumbsUp } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Eye, Github, Linkedin, Share2, ThumbsUp } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import DocumentRenderer from '../../../components/document_renderer/DocumentRenderer';
 import PublicArticleCard from '../../../components/public/PublicArticleCard';
 import useArticleDetail from './hooks/useArticleDetail';
+
+const AUTHOR_GITHUB_URL = 'https://github.com/DeanBautista';
+const AUTHOR_LINKEDIN_URL = 'https://www.linkedin.com/in/dean-paolo-bautista-6145083ba/';
+const SHARE_FEEDBACK_DURATION_MS = 2000;
 
 function getInitials(name) {
   if (!name) return 'OA';
@@ -65,8 +70,40 @@ function RecommendationsSkeleton() {
   );
 }
 
+function copyWithExecCommand(text) {
+  if (typeof document === 'undefined' || !document.body) {
+    return false;
+  }
+
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  textArea.style.pointerEvents = 'none';
+
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  let copied = false;
+
+  try {
+    copied = document.execCommand('copy');
+  } catch {
+    copied = false;
+  }
+
+  document.body.removeChild(textArea);
+
+  return copied;
+}
+
 export default function ArticleDetail() {
   const navigate = useNavigate();
+  const shareResetTimeoutRef = useRef(null);
+  const [isShareCopied, setIsShareCopied] = useState(false);
+
   const {
     article,
     recommendedArticles,
@@ -79,6 +116,77 @@ export default function ArticleDetail() {
     isLikeAnimating,
     handleLikeToggle,
   } = useArticleDetail();
+
+  useEffect(() => {
+    return () => {
+      if (typeof window === 'undefined' || shareResetTimeoutRef.current === null) {
+        return;
+      }
+
+      window.clearTimeout(shareResetTimeoutRef.current);
+    };
+  }, []);
+
+  const nextPostSlug = article?.nextPost?.slug || '';
+  const nextPostTitle = article?.nextPost?.title || 'No next post available';
+  const hasNextPost = Boolean(nextPostSlug);
+
+  const scheduleShareReset = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (shareResetTimeoutRef.current !== null) {
+      window.clearTimeout(shareResetTimeoutRef.current);
+    }
+
+    shareResetTimeoutRef.current = window.setTimeout(() => {
+      setIsShareCopied(false);
+      shareResetTimeoutRef.current = null;
+    }, SHARE_FEEDBACK_DURATION_MS);
+  };
+
+  const handleShareClick = async () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const currentUrl = window.location.href;
+
+    if (!currentUrl) {
+      return;
+    }
+
+    let copied = false;
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(currentUrl);
+        copied = true;
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (!copied) {
+      copied = copyWithExecCommand(currentUrl);
+    }
+
+    if (!copied) {
+      return;
+    }
+
+    setIsShareCopied(true);
+    scheduleShareReset();
+  };
+
+  const handleNextPostClick = () => {
+    if (!hasNextPost) {
+      return;
+    }
+
+    navigate(`/article/${encodeURIComponent(nextPostSlug)}`);
+  };
 
   const handleBackClick = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -127,7 +235,6 @@ export default function ArticleDetail() {
   }
 
   const hasContent = typeof article.content === 'string' && article.content.trim().length > 0;
-  const nextPostTitle = article.nextPost?.title || 'No next post available';
   const authorBio =
     'Senior Systems Architect specializing in low-level obsidian frameworks and high-concurrency developer tooling. Obsessed with terminal aesthetics and minimalist infrastructure.';
 
@@ -245,18 +352,21 @@ export default function ArticleDetail() {
 
               <button
                 type="button"
-                disabled
-                className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface-variant disabled:cursor-default disabled:opacity-80"
+                onClick={handleShareClick}
+                className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
               >
-                <Share2 size={15} aria-hidden="true" />
+                {isShareCopied ? <Check size={15} aria-hidden="true" /> : <Share2 size={15} aria-hidden="true" />}
                 <span>Share</span>
               </button>
             </div>
 
             <button
               type="button"
-              disabled
-              className="group relative flex items-center justify-between gap-4 w-full overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-low px-5 py-4 text-left disabled:cursor-default sm:w-auto sm:min-w-[20rem] sm:max-w-88"
+              onClick={handleNextPostClick}
+              disabled={!hasNextPost}
+              className={`group relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-low px-5 py-4 text-left transition-colors sm:w-auto sm:min-w-[20rem] sm:max-w-88 ${
+                hasNextPost ? 'hover:border-primary/45 hover:bg-surface-container' : 'cursor-default opacity-80'
+              }`}
             >
               <div className="flex flex-col gap-1 min-w-0">
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">
@@ -296,23 +406,25 @@ export default function ArticleDetail() {
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-on-surface-variant sm:text-base">{authorBio}</p>
 
               <div className="mt-5 flex flex-wrap justify-center gap-2.5 sm:justify-start">
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container px-4 py-2 text-xs font-medium text-on-surface-variant disabled:cursor-default disabled:opacity-90"
+                <a
+                  href={AUTHOR_GITHUB_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container px-4 py-2 text-xs font-medium text-on-surface-variant transition-colors hover:border-primary/45 hover:text-on-surface"
                 >
                   <Github size={14} aria-hidden="true" />
                   <span>GitHub</span>
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container px-4 py-2 text-xs font-medium text-on-surface-variant disabled:cursor-default disabled:opacity-90"
+                <a
+                  href={AUTHOR_LINKEDIN_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container px-4 py-2 text-xs font-medium text-on-surface-variant transition-colors hover:border-primary/45 hover:text-on-surface"
                 >
                   <Linkedin size={14} aria-hidden="true" />
                   <span>LinkedIn</span>
-                </button>
+                </a>
               </div>
             </div>
           </div>

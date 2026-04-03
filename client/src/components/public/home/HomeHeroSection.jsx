@@ -123,7 +123,7 @@ export default function HomeHeroSection({ homeData, firstName, statCards, loadin
             </Link>
 
             <a
-              href="https://github.com"
+              href="https://github.com/DeanBautista"
               target="_blank"
               rel="noreferrer"
               className="rounded-full border border-outline-variant/50 bg-surface-container px-5 py-2.5 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface sm:px-7 sm:py-3.5 sm:text-base"
