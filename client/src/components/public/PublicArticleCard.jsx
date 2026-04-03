@@ -78,7 +78,7 @@ export default function PublicArticleCard({ article, index = 0 }) {
   const imageTagNames = tagNames.slice(0, 3);
 
   const cardContent = (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container shadow-[0_14px_38px_rgba(3,8,24,0.32)] transition-transform duration-300 hover:-translate-y-1.5">
+    <article className="group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container shadow-[0_14px_38px_rgba(3,8,24,0.32)] transition-transform duration-300 hover:-translate-y-1.5">
       <div className="relative h-44 overflow-hidden bg-surface-container-high">
         {article?.cover_image ? (
           <img
@@ -109,10 +109,10 @@ export default function PublicArticleCard({ article, index = 0 }) {
       </div>
 
       <div className="flex flex-1 flex-col px-5 py-5">
-        <h3 className="text-3xl font-semibold leading-tight text-on-surface">{title}</h3>
+        <h3 className="text-3xl font-semibold leading-tight text-on-surface break-words">{title}</h3>
 
         <p
-          className="mt-3 text-sm leading-relaxed text-on-surface-variant"
+          className="mt-3 text-sm leading-relaxed text-on-surface-variant break-words overflow-hidden"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 3,
@@ -129,11 +129,11 @@ export default function PublicArticleCard({ article, index = 0 }) {
               <img
                 src={authorAvatar}
                 alt={authorName}
-                className="h-9 w-9 rounded-full border border-outline-variant/30 object-cover"
+                className="h-9 w-9 shrink-0 rounded-full border border-outline-variant/30 object-cover"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container-high text-xs font-semibold text-on-surface-variant">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container-high text-xs font-semibold text-on-surface-variant">
                 {getInitials(authorName)}
               </div>
             )}
@@ -160,7 +160,7 @@ export default function PublicArticleCard({ article, index = 0 }) {
   return (
     <Link
       to={detailPath}
-      className="block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="block h-full w-full min-w-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       aria-label={`Open ${title}`}
     >
       {cardContent}

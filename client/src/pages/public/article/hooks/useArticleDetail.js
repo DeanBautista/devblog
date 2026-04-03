@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getPublicArticleBySlug } from '../../../../lib/public';
+import { getPublicArticleBySlug, getPublicArticles } from '../../../../lib/public';
 import { formatPublishedDate } from '../../../../utils/document-transformer';
 import { normalizeSlug } from '../../../../utils/slug';
 
@@ -109,7 +109,9 @@ export default function useArticleDetail() {
   const normalizedRouteSlug = useMemo(() => normalizeSlug(routeSlug), [routeSlug]);
 
   const [article, setArticle] = useState(null);
+  const [recommendedArticles, setRecommendedArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRecommendedLoading, setIsRecommendedLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isNotFound, setIsNotFound] = useState(false);
 
@@ -163,9 +165,59 @@ export default function useArticleDetail() {
     };
   }, [normalizedRouteSlug]);
 
+  useEffect(() => {
+    let shouldIgnore = false;
+
+    async function loadRecommendedArticles() {
+      setIsRecommendedLoading(true);
+      setRecommendedArticles([]);
+
+      if (!normalizedRouteSlug) {
+        setIsRecommendedLoading(false);
+        return;
+      }
+
+      try {
+        const response = await getPublicArticles({
+          page: 1,
+          limit: 6,
+        });
+
+        if (shouldIgnore) return;
+
+        if (!response?.success) {
+          throw new Error('Unable to load recommendations.');
+        }
+
+        const rows = Array.isArray(response.data) ? response.data : [];
+        const filteredRows = rows
+          .filter((row) => normalizeSlug(row?.slug) !== normalizedRouteSlug)
+          .slice(0, 3);
+
+        setRecommendedArticles(filteredRows);
+      } catch {
+        if (shouldIgnore) return;
+
+        setRecommendedArticles([]);
+      } finally {
+        if (!shouldIgnore) {
+          setIsRecommendedLoading(false);
+        }
+      }
+    }
+
+    loadRecommendedArticles();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [normalizedRouteSlug]);
+
   return {
     article,
+    recommendedArticles,
     isLoading,
+    isRecommendedLoading,
     loadError,
     isNotFound,
   };

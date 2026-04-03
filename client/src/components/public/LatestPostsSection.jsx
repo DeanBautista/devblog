@@ -6,7 +6,7 @@ export default function LatestPostsSection({ articles = [], isLoading = false })
   const visibleArticles = Array.isArray(articles) ? articles.slice(0, 3) : [];
 
   return (
-    <div className="relative mx-auto w-full max-w-6xl px-5 pb-16 md:px-8 md:pb-24 pt-8">
+    <div className="relative mx-auto w-full max-w-6xl overflow-hidden px-5 pb-16 md:px-8 md:pb-24 pt-8">
       <header className="max-w-3xl">
         <h2 className="hero-reveal hero-reveal-delay-1 text-4xl font-semibold tracking-tight text-on-surface sm:text-5xl">
           Latest Posts
@@ -25,9 +25,13 @@ export default function LatestPostsSection({ articles = [], isLoading = false })
         </p>
       )}
 
-      <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-10 grid w-full grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {visibleArticles.map((article, index) => (
-          <div key={article.id || article.slug || index} className="hero-reveal" style={{ animationDelay: `${220 + index * 120}ms` }}>
+          <div
+            key={article.id || article.slug || index}
+            className="hero-reveal min-w-0 w-full"
+            style={{ animationDelay: `${220 + index * 120}ms` }}
+          >
             <PublicArticleCard article={article} index={index} />
           </div>
         ))}
