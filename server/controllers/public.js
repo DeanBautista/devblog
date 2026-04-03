@@ -6,6 +6,8 @@ const DEFAULT_ARTICLES_LIMIT = 6;
 const MAX_ARTICLES_LIMIT = 24;
 const MAX_SEARCH_QUERY_LENGTH = 100;
 const MAX_TAG_SLUG_LENGTH = 80;
+const LIKE_ACTION_LIKE = 'like';
+const LIKE_ACTION_UNLIKE = 'unlike';
 
 function normalizeTagNames(tagsValue) {
   if (!Array.isArray(tagsValue)) {
@@ -59,6 +61,7 @@ function normalizeArticles(rows) {
     excerpt: row.excerpt,
     reading_time: Number(row.reading_time) || 0,
     views: Number(row.views) || 0,
+    likes: Number(row.likes) || 0,
     published_at: row.published_at || null,
     created_at: row.created_at || null,
     cover_image: row.cover_image || null,
@@ -172,6 +175,20 @@ function normalizeTagSlug(value) {
   return normalizeSlug(value.trim().slice(0, MAX_TAG_SLUG_LENGTH));
 }
 
+function normalizeLikeAction(value) {
+  const normalizedValue = String(value ?? '').trim().toLowerCase();
+
+  if (normalizedValue === LIKE_ACTION_LIKE) {
+    return LIKE_ACTION_LIKE;
+  }
+
+  if (normalizedValue === LIKE_ACTION_UNLIKE) {
+    return LIKE_ACTION_UNLIKE;
+  }
+
+  return '';
+}
+
 function mapPublicTagRow(row) {
   const parsedId = Number.parseInt(row?.id, 10);
   const tagName = typeof row?.name === 'string' ? row.name.trim() : '';
@@ -182,6 +199,47 @@ function mapPublicTagRow(row) {
     name: tagName,
     slug: tagSlug,
     usage_count: Number.parseInt(row?.usage_count, 10) || 0,
+  };
+}
+
+function parseCounterValue(value) {
+  const parsedValue = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+    return 0;
+  }
+
+  return parsedValue;
+}
+
+async function findPublishedArticleBySlug(slug) {
+  const [rows] = await db.query(
+    `SELECT
+       id
+     FROM posts
+     WHERE LOWER(status) = 'published'
+       AND slug = ?
+     LIMIT 1`,
+    [slug]
+  );
+
+  return rows[0] ?? null;
+}
+
+async function getArticleCountersById(postId) {
+  const [rows] = await db.query(
+    `SELECT
+       COALESCE(views, 0) AS views,
+       COALESCE(likes, 0) AS likes
+     FROM posts
+     WHERE id = ?
+     LIMIT 1`,
+    [postId]
+  );
+
+  return {
+    views: parseCounterValue(rows[0]?.views),
+    likes: parseCounterValue(rows[0]?.likes),
   };
 }
 
@@ -283,6 +341,7 @@ async function getHomeData(req, res) {
           p.excerpt,
           p.reading_time,
           COALESCE(p.views, 0) AS views,
+          COALESCE(p.likes, 0) AS likes,
           p.published_at,
           p.created_at,
           p.cover_image,
@@ -422,6 +481,7 @@ async function listPublicArticles(req, res) {
         p.excerpt,
         p.reading_time,
         COALESCE(p.views, 0) AS views,
+        COALESCE(p.likes, 0) AS likes,
         p.published_at,
         p.created_at,
         p.cover_image,
@@ -498,6 +558,7 @@ async function getPublicArticleBySlug(req, res) {
          p.content,
          p.reading_time,
          COALESCE(p.views, 0) AS views,
+        COALESCE(p.likes, 0) AS likes,
          p.published_at,
          p.created_at,
          p.cover_image,
@@ -540,9 +601,124 @@ async function getPublicArticleBySlug(req, res) {
   }
 }
 
+async function recordPublicArticleView(req, res) {
+  const normalizedSlug = normalizeSlug(req.params.slug);
+
+  if (!normalizedSlug) {
+    return res.status(404).json({
+      success: false,
+      message: 'Article not found',
+    });
+  }
+
+  try {
+    const articleRow = await findPublishedArticleBySlug(normalizedSlug);
+
+    if (!articleRow) {
+      return res.status(404).json({
+        success: false,
+        message: 'Article not found',
+      });
+    }
+
+    await db.query(
+      `UPDATE posts
+       SET views = COALESCE(views, 0) + 1
+       WHERE id = ?
+       LIMIT 1`,
+      [articleRow.id]
+    );
+
+    const counters = await getArticleCountersById(articleRow.id);
+
+    return res.json({
+      success: true,
+      data: {
+        id: articleRow.id,
+        slug: normalizedSlug,
+        ...counters,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to record article view',
+      error: error.message,
+    });
+  }
+}
+
+async function togglePublicArticleLike(req, res) {
+  const normalizedSlug = normalizeSlug(req.params.slug);
+  const likeAction = normalizeLikeAction(req.body?.action);
+
+  if (!normalizedSlug) {
+    return res.status(404).json({
+      success: false,
+      message: 'Article not found',
+    });
+  }
+
+  if (!likeAction) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid like action',
+    });
+  }
+
+  try {
+    const articleRow = await findPublishedArticleBySlug(normalizedSlug);
+
+    if (!articleRow) {
+      return res.status(404).json({
+        success: false,
+        message: 'Article not found',
+      });
+    }
+
+    if (likeAction === LIKE_ACTION_LIKE) {
+      await db.query(
+        `UPDATE posts
+         SET likes = COALESCE(likes, 0) + 1
+         WHERE id = ?
+         LIMIT 1`,
+        [articleRow.id]
+      );
+    } else {
+      await db.query(
+        `UPDATE posts
+         SET likes = GREATEST(COALESCE(likes, 0) - 1, 0)
+         WHERE id = ?
+         LIMIT 1`,
+        [articleRow.id]
+      );
+    }
+
+    const counters = await getArticleCountersById(articleRow.id);
+
+    return res.json({
+      success: true,
+      data: {
+        id: articleRow.id,
+        slug: normalizedSlug,
+        liked: likeAction === LIKE_ACTION_LIKE,
+        ...counters,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update article like',
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   getHomeData,
   getPublicTags,
   listPublicArticles,
   getPublicArticleBySlug,
+  recordPublicArticleView,
+  togglePublicArticleLike,
 };

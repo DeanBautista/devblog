@@ -7,6 +7,8 @@ export const POST_EDITOR_DEFAULTS = {
     postSlug: "",
     postExcerpt: "",
     editorContent: "",
+    coverImageUrl: null,
+    hasUploadedCoverInSession: false,
     readTimeMinutes: "12",
     selectedTagIds: [],
     editorView: EDITOR_VIEWS.WRITE,
@@ -20,6 +22,15 @@ const usePostEditorStore = create(
             setPostSlug: (postSlug) => set({ postSlug }),
             setPostExcerpt: (postExcerpt) => set({ postExcerpt }),
             setEditorContent: (editorContent) => set({ editorContent }),
+            setCoverImageUrl: (coverImageUrl) =>
+                set({
+                    coverImageUrl:
+                        typeof coverImageUrl === "string" && coverImageUrl.trim()
+                            ? coverImageUrl.trim()
+                            : null,
+                }),
+            setHasUploadedCoverInSession: (hasUploadedCoverInSession) =>
+                set({ hasUploadedCoverInSession: Boolean(hasUploadedCoverInSession) }),
             setReadTimeMinutes: (readTimeMinutes) => set({ readTimeMinutes }),
             setSelectedTagIds: (selectedTagIds) => set({ selectedTagIds }),
             toggleSelectedTagId: (tagId) =>
@@ -53,6 +64,8 @@ const usePostEditorStore = create(
                 postSlug: state.postSlug,
                 postExcerpt: state.postExcerpt,
                 editorContent: state.editorContent,
+                coverImageUrl: state.coverImageUrl,
+                hasUploadedCoverInSession: state.hasUploadedCoverInSession,
                 readTimeMinutes: state.readTimeMinutes,
                 selectedTagIds: state.selectedTagIds,
                 editorView: state.editorView,

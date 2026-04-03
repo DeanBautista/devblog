@@ -38,3 +38,32 @@ export async function getPublicArticleBySlug(slug) {
   const response = await api.get(`/api/public/articles/${encodeURIComponent(normalizedSlug)}`);
   return response.data;
 }
+
+export async function recordPublicArticleView(slug) {
+  const normalizedSlug = typeof slug === 'string' ? slug.trim() : '';
+
+  if (!normalizedSlug) {
+    throw new Error('Article slug is required');
+  }
+
+  const response = await api.post(`/api/public/articles/${encodeURIComponent(normalizedSlug)}/view`);
+  return response.data;
+}
+
+export async function togglePublicArticleLike(slug, action) {
+  const normalizedSlug = typeof slug === 'string' ? slug.trim() : '';
+  const normalizedAction = typeof action === 'string' ? action.trim().toLowerCase() : '';
+
+  if (!normalizedSlug) {
+    throw new Error('Article slug is required');
+  }
+
+  if (!normalizedAction) {
+    throw new Error('Like action is required');
+  }
+
+  const response = await api.post(`/api/public/articles/${encodeURIComponent(normalizedSlug)}/like`, {
+    action: normalizedAction,
+  });
+  return response.data;
+}

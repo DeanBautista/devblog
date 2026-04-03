@@ -67,7 +67,18 @@ function RecommendationsSkeleton() {
 
 export default function ArticleDetail() {
   const navigate = useNavigate();
-  const { article, recommendedArticles, isLoading, isRecommendedLoading, loadError, isNotFound } = useArticleDetail();
+  const {
+    article,
+    recommendedArticles,
+    isLoading,
+    isRecommendedLoading,
+    loadError,
+    isNotFound,
+    isLiked,
+    isLikePending,
+    isLikeAnimating,
+    handleLikeToggle,
+  } = useArticleDetail();
 
   const handleBackClick = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -214,10 +225,19 @@ export default function ArticleDetail() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                disabled
-                className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface-variant disabled:cursor-default disabled:opacity-80"
+                onClick={handleLikeToggle}
+                disabled={isLikePending}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
+                  isLiked
+                    ? 'border-primary/45 bg-primary/15 text-on-surface'
+                    : 'border-outline-variant/35 bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                }`}
               >
-                <ThumbsUp size={15} aria-hidden="true" />
+                <ThumbsUp
+                  size={15}
+                  aria-hidden="true"
+                  className={`${isLiked ? 'fill-current' : ''} ${isLikeAnimating ? 'article-like-bounce' : ''}`}
+                />
                 <span>{article.likesLabel}</span>
               </button>
 
@@ -234,7 +254,7 @@ export default function ArticleDetail() {
             <button
               type="button"
               disabled
-              className="group relative flex items-center justify-between gap-4 w-full overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-low px-5 py-4 text-left disabled:cursor-default sm:w-auto sm:min-w-[20rem] sm:max-w-[22rem]"
+              className="group relative flex items-center justify-between gap-4 w-full overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-low px-5 py-4 text-left disabled:cursor-default sm:w-auto sm:min-w-[20rem] sm:max-w-88"
             >
               <div className="flex flex-col gap-1 min-w-0">
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">
