@@ -4,6 +4,9 @@ const bcrypt = require('bcrypt');
 
 const ACCESS_SECRET  = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const ACCESS_EXPIRATION = process.env.JWT_ACCESS_EXPIRATION || '15m';
+const REFRESH_EXPIRATION = process.env.JWT_REFRESH_EXPIRATION || '7d';
+const isProduction = process.env.NODE_ENV === 'production';
 
 const refreshTokenStore = new Set();
 
@@ -11,7 +14,7 @@ function generateAccessToken(user) {
   return jwt.sign(
     { sub: user.id, email: user.email },
     ACCESS_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: ACCESS_EXPIRATION }
   );
 }
 
@@ -19,17 +22,23 @@ function generateRefreshToken(user) {
   const token = jwt.sign(
     { sub: user.id },
     REFRESH_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: REFRESH_EXPIRATION }
   );
   refreshTokenStore.add(token);
   return token;
 }
 
-const cookieOptions = {
+const refreshCookieOptions = {
   httpOnly: true,
-  secure: false, // true in production
-  sameSite: "strict",
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const clearRefreshCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
 };
 
 async function login(req, res) {
@@ -47,7 +56,7 @@ async function login(req, res) {
     const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    res.cookie("refreshToken", refreshToken, cookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
     const { password: _, ...safeUser } = user;
     res.json({ user: safeUser, success: true, accessToken, message: 'Login successful' });
@@ -60,7 +69,7 @@ async function login(req, res) {
 async function logout(req, res) {
   const { refreshToken } = req.cookies;
   if (refreshToken) refreshTokenStore.delete(refreshToken);
-  res.clearCookie("refreshToken");
+  res.clearCookie("refreshToken", clearRefreshCookieOptions);
   res.json({ success: true, message: "Logged out successfully" });
 }
 
@@ -85,7 +94,7 @@ async function refresh(req, res) {
 
     refreshTokenStore.delete(refreshToken);
     const newRefreshToken = generateRefreshToken(user);
-    res.cookie("refreshToken", newRefreshToken, cookieOptions);
+    res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
 
     const newAccessToken = generateAccessToken(user);
     console.log('Generated new access token for user:', user.email);
@@ -111,7 +120,7 @@ async function init(req, res) {
 
         refreshTokenStore.delete(refreshToken);
         const newRefreshToken = generateRefreshToken(user);
-        res.cookie("refreshToken", newRefreshToken, cookieOptions);
+        res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
 
         const newAccessToken = generateAccessToken(user);
         const { password: _, ...safeUser } = user;

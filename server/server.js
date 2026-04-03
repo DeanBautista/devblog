@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
 const tagsRoutes = require('./routes/tags');
@@ -9,18 +10,37 @@ const publicRoutes = require('./routes/public');
 const db = require('./config/db');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'https://devblog-lemon.vercel.app',
+];
+
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(','))
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true,
+};
 
 db.getConnection()
   .then(() => console.log('MySQL connected'))
   .catch(err => console.error('Connection failed:', err));
 
 // Middleware
-app.use(cors({
-  origin: 'http://localhost:5173', // your frontend URL (Vite default)
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 app.use(cookieParser());
 app.use(express.json());
