@@ -67,7 +67,7 @@ export default function PublicHeader() {
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="rounded-lg border border-outline-variant/40 p-2 text-on-surface-variant transition-colors hover:text-on-surface md:hidden"
+          className="ml-3 rounded-lg border border-outline-variant/40 p-2 text-on-surface-variant transition-colors hover:text-on-surface md:hidden"
           aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={isOpen}
         >
