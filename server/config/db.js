@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2');
-require('dotenv').config();
+require('dotenv').config({ override: true});
 
 const parseBoolean = (value) => ['true', '1', 'yes', 'on'].includes(String(value).toLowerCase());
 const parsedPort = Number(process.env.DB_PORT);

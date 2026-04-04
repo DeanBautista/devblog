@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import ColdStartNoticeToast from '../../../components/public/ColdStartNoticeToast';
 import PublicArticleCard from '../../../components/public/PublicArticleCard';
 import SearchInputWithResults from '../../../components/search/SearchInputWithResults';
 import SearchResultCard from '../../../components/search/SearchResultCard';
@@ -28,8 +27,6 @@ export default function Article() {
 
     return (
         <section className="relative mx-auto w-full max-w-6xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
-            <ColdStartNoticeToast visible={isLoading} delayMs={5000} />
-
             <div
                 className="pointer-events-none absolute left-1/2 top-12 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
                 aria-hidden="true"

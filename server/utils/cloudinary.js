@@ -87,6 +87,14 @@ function isUserOwnedCoverPublicId(publicId, userId) {
 function uploadCoverImageBuffer({ userId, buffer }) {
   ensureCloudinaryConfigured();
 
+  const cfg = cloudinary.config();
+  console.log({
+    cloud_name: cfg.cloud_name,
+    api_key: cfg.api_key,
+    secret_length: cfg.api_secret?.length,
+    secret_preview: cfg.api_secret?.slice(0, 4) + '...',
+  });
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {

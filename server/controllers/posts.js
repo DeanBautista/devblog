@@ -449,10 +449,12 @@ async function uploadPostCoverImage(req, res) {
   } catch (error) {
     const cloudinaryError = extractCloudinaryErrorDetails(error);
 
+    console.log('nigga');
+
     const responseMessage =
       cloudinaryError.httpCode === 401
         ? `Cloudinary credentials are invalid: ${cloudinaryError.message}`
-        : `Failed to upload cover image: ${cloudinaryError.message}`;
+        : `Failed to upload cover imagess: ${cloudinaryError.message}`;
 
     return res.status(500).json({
       success: false,
