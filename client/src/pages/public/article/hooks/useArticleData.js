@@ -75,6 +75,7 @@ export default function useArticleData() {
         });
         const cachedArchiveEntry = readArticleListCacheEntry(requestedCacheKey);
         const hasCachedArchiveEntry = Boolean(cachedArchiveEntry);
+        let hasLoadedFreshArticles = false;
 
         if (hasCachedArchiveEntry) {
             setArticles(cachedArchiveEntry.articles);
@@ -122,6 +123,7 @@ export default function useArticleData() {
 
                 setArticles(rows);
                 setPagination(nextPagination);
+                hasLoadedFreshArticles = true;
 
                 writeArticleListCacheEntry(requestedCacheKey, {
                     articles: rows,
@@ -155,19 +157,10 @@ export default function useArticleData() {
                 if (shouldIgnore) return;
 
                 if (!hasCachedArchiveEntry) {
-                    setArticles([]);
-                    setPagination({
-                        page: currentPage,
-                        limit: ARTICLES_PER_PAGE,
-                        total: 0,
-                        totalPages: 1,
-                        hasPrev: currentPage > 1,
-                        hasNext: false,
-                    });
-                    setLoadError('Unable to load articles right now.');
+                    // Keep skeleton state when initial archive fetch fails.
                 }
             } finally {
-                if (!shouldIgnore && !hasCachedArchiveEntry) {
+                if (!shouldIgnore && !hasCachedArchiveEntry && hasLoadedFreshArticles) {
                     setIsLoading(false);
                 }
             }

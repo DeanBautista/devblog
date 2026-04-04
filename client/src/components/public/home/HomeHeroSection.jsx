@@ -67,7 +67,7 @@ function HomeHeroSkeleton() {
   );
 }
 
-export default function HomeHeroSection({ homeData, firstName, statCards, loading, hasError }) {
+export default function HomeHeroSection({ homeData, firstName, statCards, loading }) {
   if (loading) {
     return <HomeHeroSkeleton />;
   }
@@ -132,11 +132,6 @@ export default function HomeHeroSection({ homeData, firstName, statCards, loadin
             </a>
           </div>
 
-          {hasError && (
-            <p className="mt-4 text-sm text-error">
-              Live data is temporarily unavailable. Please try again shortly.
-            </p>
-          )}
         </div>
 
         <div className="hero-reveal hero-reveal-delay-2 order-1 flex w-full max-w-md flex-col items-center lg:order-2 lg:max-w-lg">

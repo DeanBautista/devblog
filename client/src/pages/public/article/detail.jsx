@@ -110,8 +110,6 @@ export default function ArticleDetail() {
     recommendedArticles,
     isLoading,
     isRecommendedLoading,
-    loadError,
-    isNotFound,
     isLiked,
     isLikePending,
     isLikeAnimating,
@@ -221,7 +219,7 @@ export default function ArticleDetail() {
   if (!article) {
     return (
       <>
-        <ColdStartNoticeToast visible={isLoading} delayMs={5000} />
+        <ColdStartNoticeToast visible={true} delayMs={5000} />
 
         <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
           <button
@@ -232,12 +230,7 @@ export default function ArticleDetail() {
           >
             <ArrowLeft size={16} aria-hidden="true" />
           </button>
-          <article className="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-10 text-center sm:px-8">
-            <h1 className="text-2xl font-semibold text-on-surface">
-              {isNotFound ? 'Post not found' : 'Unable to load post'}
-            </h1>
-            <p className="mt-3 text-sm text-on-surface-variant">{loadError || 'Please try again in a moment.'}</p>
-          </article>
+          <ArticleDetailSkeleton />
         </section>
       </>
     );

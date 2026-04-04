@@ -15,7 +15,7 @@ export default function Home() {
     scrollPaddingTop: HOME_SCROLL_PADDING_TOP,
   });
 
-  const { homeData, loading, hasError } = useHomeData();
+  const { homeData, loading } = useHomeData();
 
   const firstName = useMemo(() => {
     return getFirstName(homeData.profile?.name);
@@ -36,7 +36,6 @@ export default function Home() {
         firstName={firstName}
         statCards={statCards}
         loading={loading}
-        hasError={hasError}
       />
 
       {/* ── Section 2: Latest Posts ───────────────────────────────────────── */}

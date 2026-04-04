@@ -23,10 +23,10 @@ export default function useHomeData() {
     hasCachedData ? normalizeHomeData(cacheSnapshot.data) : EMPTY_HOME_DATA
   );
   const [loading, setLoading] = useState(() => !hasCachedData);
-  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+    let isRequestSuccessful = false;
 
     async function loadHomeData() {
       if (!hasCachedData && isMounted) {
@@ -41,10 +41,6 @@ export default function useHomeData() {
         }
 
         if (!response?.success) {
-          if (!hasCachedData) {
-            setHasError(true);
-          }
-
           return;
         }
 
@@ -52,15 +48,11 @@ export default function useHomeData() {
 
         setHomeData(normalizedData);
         writeHomeCache(normalizedData);
-        setHasError(false);
+        isRequestSuccessful = true;
       } catch {
-        if (isMounted) {
-          if (!hasCachedData) {
-            setHasError(true);
-          }
-        }
+        // Keep skeleton state when no cache and request fails.
       } finally {
-        if (isMounted && !hasCachedData) {
+        if (isMounted && !hasCachedData && isRequestSuccessful) {
           setLoading(false);
         }
       }
@@ -76,6 +68,5 @@ export default function useHomeData() {
   return {
     homeData,
     loading,
-    hasError,
   };
 }

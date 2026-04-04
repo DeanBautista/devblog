@@ -15,7 +15,6 @@ export default function Article() {
         pagination,
         isLoading,
         areTagsLoading,
-        loadError,
         searchResults,
         isSearching,
         isSearchPending,
@@ -116,13 +115,7 @@ export default function Article() {
                         ))}
                 </div>
 
-                {!isLoading && loadError && (
-                    <p className="mt-8 rounded-2xl border border-outline-variant/30 bg-surface-container px-5 py-4 text-sm text-on-surface-variant">
-                        {loadError}
-                    </p>
-                )}
-
-                {!isLoading && !loadError && articles.length === 0 && (
+                {!isLoading && articles.length === 0 && (
                     <p className="mt-8 rounded-2xl border border-outline-variant/30 bg-surface-container px-5 py-4 text-sm text-on-surface-variant">
                         {selectedTagSlug
                             ? 'No published posts found for this tag.'
@@ -130,53 +123,51 @@ export default function Article() {
                     </p>
                 )}
 
-                {!loadError && (
-                    <div className="hero-reveal hero-reveal-delay-5 mt-12 flex flex-col items-center gap-4 pb-2 text-xs text-on-surface-variant sm:flex-row sm:justify-between">
-                        <p>
-                            {isLoading
-                                ? 'Loading articles...'
-                                : `Showing ${shownArticlesCount} of ${pagination.total} articles`}
-                        </p>
+                <div className="hero-reveal hero-reveal-delay-5 mt-12 flex flex-col items-center gap-4 pb-2 text-xs text-on-surface-variant sm:flex-row sm:justify-between">
+                    <p>
+                        {isLoading
+                            ? 'Loading articles...'
+                            : `Showing ${shownArticlesCount} of ${pagination.total} articles`}
+                    </p>
 
-                        <nav className="flex items-center gap-2" aria-label="Archive pagination">
+                    <nav className="flex items-center gap-2" aria-label="Archive pagination">
+                        <button
+                            type="button"
+                            onClick={() => updatePageInUrl(pagination.page - 1)}
+                            disabled={isLoading || !pagination.hasPrev}
+                            className="inline-flex items-center gap-1 rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <ChevronLeft size={14} aria-hidden="true" />
+                            <span className="hidden sm:inline">Previous</span>
+                        </button>
+
+                        {pageNumbers.map((page) => (
                             <button
+                                key={page}
                                 type="button"
-                                onClick={() => updatePageInUrl(pagination.page - 1)}
-                                disabled={isLoading || !pagination.hasPrev}
-                                className="inline-flex items-center gap-1 rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+                                onClick={() => updatePageInUrl(page)}
+                                disabled={isLoading}
+                                className={`h-9 w-9 rounded-lg border text-sm font-medium ${
+                                    page === pagination.page
+                                        ? 'border-primary-fixed bg-primary-fixed text-[#1b1f3b]'
+                                        : 'border-outline-variant/30 bg-surface-container-low text-on-surface-variant'
+                                } disabled:cursor-not-allowed disabled:opacity-60`}
                             >
-                                <ChevronLeft size={14} aria-hidden="true" />
-                                <span className="hidden sm:inline">Previous</span>
+                                {page}
                             </button>
+                        ))}
 
-                            {pageNumbers.map((page) => (
-                                <button
-                                    key={page}
-                                    type="button"
-                                    onClick={() => updatePageInUrl(page)}
-                                    disabled={isLoading}
-                                    className={`h-9 w-9 rounded-lg border text-sm font-medium ${
-                                        page === pagination.page
-                                            ? 'border-primary-fixed bg-primary-fixed text-[#1b1f3b]'
-                                            : 'border-outline-variant/30 bg-surface-container-low text-on-surface-variant'
-                                    } disabled:cursor-not-allowed disabled:opacity-60`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-
-                            <button
-                                type="button"
-                                onClick={() => updatePageInUrl(pagination.page + 1)}
-                                disabled={isLoading || !pagination.hasNext}
-                                className="inline-flex items-center gap-1 rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <span className="hidden sm:inline">Next</span>
-                                <ChevronRight size={14} aria-hidden="true" />
-                            </button>
-                        </nav>
-                    </div>
-                )}
+                        <button
+                            type="button"
+                            onClick={() => updatePageInUrl(pagination.page + 1)}
+                            disabled={isLoading || !pagination.hasNext}
+                            className="inline-flex items-center gap-1 rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-on-surface-variant disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight size={14} aria-hidden="true" />
+                        </button>
+                    </nav>
+                </div>
             </div>
         </section>
     );
