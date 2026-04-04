@@ -5,6 +5,11 @@ export async function getPublicHomeData() {
   return response.data;
 }
 
+export async function getPublicWarmup() {
+  const response = await api.get('/api/public/warmup');
+  return response.data;
+}
+
 export async function getPublicTags() {
   const response = await api.get('/api/public/tags');
   return response.data;

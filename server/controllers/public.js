@@ -714,6 +714,13 @@ async function togglePublicArticleLike(req, res) {
   }
 }
 
+function warmUpPublicRoutes(req, res) {
+  return res.json({
+    success: true,
+    message: 'Public route warmup complete',
+  });
+}
+
 module.exports = {
   getHomeData,
   getPublicTags,
@@ -721,4 +728,5 @@ module.exports = {
   getPublicArticleBySlug,
   recordPublicArticleView,
   togglePublicArticleLike,
+  warmUpPublicRoutes,
 };

@@ -1,4 +1,5 @@
 const archiveListCache = new Map();
+const ARTICLE_LIST_CACHE_TTL_MS = 10 * 60 * 1000;
 
 function toPositiveInteger(value, fallbackValue) {
     const parsedValue = Number.parseInt(value, 10);
@@ -38,6 +39,14 @@ export function readArticleListCacheEntry(cacheKey) {
         return null;
     }
 
+    const fetchedAt = Number(cachedEntry.fetchedAt);
+    const cacheAge = Date.now() - fetchedAt;
+
+    if (!Number.isFinite(fetchedAt) || fetchedAt <= 0 || !Number.isFinite(cacheAge) || cacheAge < 0 || cacheAge >= ARTICLE_LIST_CACHE_TTL_MS) {
+        archiveListCache.delete(cacheKey);
+        return null;
+    }
+
     const rows = Array.isArray(cachedEntry.articles) ? cachedEntry.articles : null;
     const pagination = cachedEntry.pagination && typeof cachedEntry.pagination === 'object'
         ? cachedEntry.pagination
@@ -71,6 +80,7 @@ export function writeArticleListCacheEntry(cacheKey, nextValue) {
     archiveListCache.set(cacheKey, {
         articles: rows,
         pagination,
+        fetchedAt: Date.now(),
     });
 
     return true;

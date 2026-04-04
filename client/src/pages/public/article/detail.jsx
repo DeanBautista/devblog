@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Eye, Github, Linkedin, Share2, ThumbsUp } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import ColdStartNoticeToast from '../../../components/public/ColdStartNoticeToast';
 import DocumentRenderer from '../../../components/document_renderer/DocumentRenderer';
 import PublicArticleCard from '../../../components/public/PublicArticleCard';
 import useArticleDetail from './hooks/useArticleDetail';
@@ -199,38 +200,46 @@ export default function ArticleDetail() {
 
   if (isLoading) {
     return (
-      <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
-        <button
-          type="button"
-          onClick={handleBackClick}
-          className="hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
-          aria-label="Go back"
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-        </button>
-        <ArticleDetailSkeleton />
-      </section>
+      <>
+        <ColdStartNoticeToast visible={isLoading} delayMs={5000} />
+
+        <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
+          <button
+            type="button"
+            onClick={handleBackClick}
+            className="hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+          </button>
+          <ArticleDetailSkeleton />
+        </section>
+      </>
     );
   }
 
   if (!article) {
     return (
-      <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
-        <button
-          type="button"
-          onClick={handleBackClick}
-          className="hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
-          aria-label="Go back"
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-        </button>
-        <article className="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-10 text-center sm:px-8">
-          <h1 className="text-2xl font-semibold text-on-surface">
-            {isNotFound ? 'Post not found' : 'Unable to load post'}
-          </h1>
-          <p className="mt-3 text-sm text-on-surface-variant">{loadError || 'Please try again in a moment.'}</p>
-        </article>
-      </section>
+      <>
+        <ColdStartNoticeToast visible={isLoading} delayMs={5000} />
+
+        <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-12 md:px-8 md:pb-24 md:pt-16">
+          <button
+            type="button"
+            onClick={handleBackClick}
+            className="hero-reveal inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/35 bg-surface-container-low text-on-surface transition-colors hover:bg-surface-container"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+          </button>
+          <article className="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-10 text-center sm:px-8">
+            <h1 className="text-2xl font-semibold text-on-surface">
+              {isNotFound ? 'Post not found' : 'Unable to load post'}
+            </h1>
+            <p className="mt-3 text-sm text-on-surface-variant">{loadError || 'Please try again in a moment.'}</p>
+          </article>
+        </section>
+      </>
     );
   }
 
@@ -239,11 +248,14 @@ export default function ArticleDetail() {
     'Senior Systems Architect specializing in low-level obsidian frameworks and high-concurrency developer tooling. Obsessed with terminal aesthetics and minimalist infrastructure.';
 
   return (
-    <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-linear-to-b"
-        aria-hidden="true"
-      />
+    <>
+      <ColdStartNoticeToast visible={isLoading} delayMs={5000} />
+
+      <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-linear-to-b"
+          aria-hidden="true"
+        />
 
       <article className="relative">
         <div className="hero-reveal overflow-hidden rounded-2xl border border-outline-variant/30">
@@ -464,5 +476,6 @@ export default function ArticleDetail() {
         </section>
       </article>
     </section>
+    </>
   );
 }

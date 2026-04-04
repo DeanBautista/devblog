@@ -1,10 +1,5 @@
-const HOME_CACHE_STORAGE_KEY = 'devblog.public.home.data.v1';
-const HOME_CACHE_TTL_MS = 60 * 60 * 1000;
-const HOME_CACHE_VERSION = 1;
-
-function canUseStorage() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
-}
+const HOME_CACHE_TTL_MS = 10 * 60 * 1000;
+let homeCacheSnapshot = null;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -21,74 +16,46 @@ function hasKnownHomeFields(dataValue) {
 }
 
 export function readHomeCache() {
-  if (!canUseStorage()) {
+  if (!homeCacheSnapshot || !isPlainObject(homeCacheSnapshot)) {
     return null;
   }
 
-  try {
-    const rawCacheValue = window.localStorage.getItem(HOME_CACHE_STORAGE_KEY);
+  const fetchedAt = Number(homeCacheSnapshot.fetchedAt);
 
-    if (!rawCacheValue) {
-      return null;
-    }
-
-    const parsedCacheValue = JSON.parse(rawCacheValue);
-
-    if (!isPlainObject(parsedCacheValue)) {
-      return null;
-    }
-
-    if (Number(parsedCacheValue.version) !== HOME_CACHE_VERSION) {
-      return null;
-    }
-
-    if (!hasKnownHomeFields(parsedCacheValue.data)) {
-      return null;
-    }
-
-    const fetchedAt = Number(parsedCacheValue.fetchedAt);
-
-    return {
-      data: parsedCacheValue.data,
-      fetchedAt: Number.isFinite(fetchedAt) ? fetchedAt : 0,
-    };
-  } catch {
+  if (!Number.isFinite(fetchedAt) || fetchedAt <= 0 || !hasKnownHomeFields(homeCacheSnapshot.data)) {
+    homeCacheSnapshot = null;
     return null;
   }
+
+  const cacheAge = Date.now() - fetchedAt;
+
+  if (!Number.isFinite(cacheAge) || cacheAge < 0 || cacheAge >= HOME_CACHE_TTL_MS) {
+    homeCacheSnapshot = null;
+    return null;
+  }
+
+  return {
+    data: homeCacheSnapshot.data,
+    fetchedAt,
+  };
 }
 
 export function writeHomeCache(data) {
-  if (!canUseStorage() || !isPlainObject(data)) {
+  if (!isPlainObject(data) || !hasKnownHomeFields(data)) {
     return false;
   }
 
-  try {
-    window.localStorage.setItem(
-      HOME_CACHE_STORAGE_KEY,
-      JSON.stringify({
-        version: HOME_CACHE_VERSION,
-        fetchedAt: Date.now(),
-        data,
-      })
-    );
+  homeCacheSnapshot = {
+    data,
+    fetchedAt: Date.now(),
+  };
 
-    return true;
-  } catch {
-    return false;
-  }
+  return true;
 }
 
 export function invalidateHomeCache() {
-  if (!canUseStorage()) {
-    return false;
-  }
-
-  try {
-    window.localStorage.removeItem(HOME_CACHE_STORAGE_KEY);
-    return true;
-  } catch {
-    return false;
-  }
+  homeCacheSnapshot = null;
+  return true;
 }
 
 export function isHomeCacheFresh(cacheValue, now = Date.now()) {
