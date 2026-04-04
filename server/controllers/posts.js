@@ -403,7 +403,8 @@ async function uploadPostCoverImage(req, res) {
   if (!isCloudinaryConfigured()) {
     return res.status(500).json({
       success: false,
-      message: 'Cloudinary is not configured on the server.',
+      message:
+        'Cloudinary is not configured on the server. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in backend environment variables.',
     });
   }
 
