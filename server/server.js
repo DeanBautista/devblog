@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+require('dotenv').config({ overrride: true });
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
 const tagsRoutes = require('./routes/tags');

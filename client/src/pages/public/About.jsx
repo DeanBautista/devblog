@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import ColdStartNoticeToast from '../../components/public/ColdStartNoticeToast';
+import { useEffect } from 'react';
 import { getPublicWarmup } from '../../lib/public';
 
 const TOPICS = [
@@ -30,34 +29,20 @@ const TOPICS = [
 ];
 
 export default function About() {
-  const [isWarmupLoading, setIsWarmupLoading] = useState(true);
-
   useEffect(() => {
-    let shouldIgnore = false;
-
     async function warmupPublicRoute() {
       try {
         await getPublicWarmup();
       } catch {
         // Keep About content visible even if warm-up request fails.
-      } finally {
-        if (!shouldIgnore) {
-          setIsWarmupLoading(false);
-        }
       }
     }
 
     warmupPublicRoute();
-
-    return () => {
-      shouldIgnore = true;
-    };
   }, []);
 
   return (
     <>
-      <ColdStartNoticeToast visible={isWarmupLoading} delayMs={5000} />
-
       <section className="mx-auto w-full max-w-4xl px-5 pb-20 pt-12 md:px-8 md:pt-16">
         {/* Label */}
         <p className="about-reveal text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
