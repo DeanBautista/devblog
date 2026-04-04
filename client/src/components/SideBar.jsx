@@ -111,13 +111,13 @@ export default function SideBar({ children, page }) {
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity duration-300"
+          className="fixed top-0 bottom-0 inset-0 bg-black/50 z-54 md:hidden transition-opacity duration-300"
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed flex flex-col justify-between top-0 bottom-0 w-65 bg-surface-container px-5 py-5 z-40 transition-transform duration-300 ease-in-out
+        className={`fixed flex flex-col justify-between top-0 bottom-0 w-65 bg-surface-container px-5 py-5 z-55 transition-transform duration-300 ease-in-out
           md:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -211,7 +211,7 @@ export default function SideBar({ children, page }) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed top-5 left-5 z-30 p-2 rounded-lg bg-surface-container text-on-surface-variant hover:text-white transition-colors md:hidden"
+          className="fixed top-5 left-5 z-54 p-2 rounded-lg bg-surface-container text-on-surface-variant hover:text-white transition-colors md:hidden"
         >
           <Menu size={20} />
         </button>
