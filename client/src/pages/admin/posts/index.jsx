@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PostCard, { PostCardSkeleton } from "../../../components/posts/PostCard";
 import SearchInputWithResults from "../../../components/search/SearchInputWithResults";
 import SearchResultCard from "../../../components/search/SearchResultCard";
@@ -7,6 +7,8 @@ import usePostsData from "./hooks/usePostsData";
 import { SKELETON_CARD_KEYS, FILTER_TABS } from "./constants";
 
 export default function Posts() {
+    const navigate = useNavigate();
+
     const {
         currentPage,
         posts,
@@ -31,6 +33,50 @@ export default function Posts() {
         handleDeletePost,
     } = usePostsData();
 
+    const getParsedPostId = (post) => {
+        const parsedPostId = Number.parseInt(post?.id, 10);
+        return Number.isInteger(parsedPostId) && parsedPostId > 0 ? parsedPostId : null;
+    };
+
+    const getNormalizedSlug = (post) =>
+        typeof post?.slug === "string" ? post.slug.trim() : "";
+
+    const handleSearchResultEdit = (post) => {
+        const normalizedSlug = getNormalizedSlug(post);
+        const parsedPostId = getParsedPostId(post);
+
+        if (normalizedSlug) {
+            navigate(`/admin/newposts/${encodeURIComponent(normalizedSlug)}`);
+            return;
+        }
+
+        if (parsedPostId) {
+            navigate(`/admin/newposts/id/${parsedPostId}`);
+        }
+    };
+
+    const handleSearchResultDelete = async (post) => {
+        const parsedPostId = getParsedPostId(post);
+        if (!parsedPostId) {
+            return;
+        }
+
+        const normalizedTitle =
+            typeof post?.title === "string" && post.title.trim().length > 0
+                ? post.title.trim()
+                : "this post";
+
+        const shouldDelete = window.confirm(
+            `Delete "${normalizedTitle}"? This action cannot be undone.`
+        );
+
+        if (!shouldDelete) {
+            return;
+        }
+
+        await handleDeletePost(parsedPostId);
+    };
+
     return (
         <section className="min-h-screen w-full pt-14 md:pt-0">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -43,16 +89,32 @@ export default function Posts() {
                     loadingLabel="Searching posts..."
                     emptyLabel="No matching posts found."
                     wrapperClassName="w-full max-w-md"
-                    renderResult={(post, index) => (
-                        <SearchResultCard
-                            key={`admin-post-search-${post.id || index}`}
-                            title={post?.title}
-                            imageSrc={post?.cover_image}
-                            tags={post?.tags}
-                            readTime={post?.reading_time}
-                            index={index}
-                        />
-                    )}
+                    renderResult={(post, index) => {
+                        const parsedPostId = getParsedPostId(post);
+                        const normalizedSlug = getNormalizedSlug(post);
+
+                        return (
+                            <SearchResultCard
+                                key={`admin-post-search-${post.id || index}`}
+                                title={post?.title}
+                                imageSrc={post?.cover_image}
+                                tags={post?.tags}
+                                readTime={post?.reading_time}
+                                index={index}
+                                onEdit={
+                                    normalizedSlug || parsedPostId
+                                        ? () => handleSearchResultEdit(post)
+                                        : undefined
+                                }
+                                onDelete={
+                                    parsedPostId
+                                        ? () => handleSearchResultDelete(post)
+                                        : undefined
+                                }
+                                isDeleting={Boolean(parsedPostId) && deletingPostId === parsedPostId}
+                            />
+                        );
+                    }}
                 />
 
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">

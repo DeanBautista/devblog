@@ -1,3 +1,4 @@
+import { Edit, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const FALLBACK_COVERS = [
@@ -46,12 +47,40 @@ export default function SearchResultCard({
   readTime,
   index = 0,
   to = '',
+  onEdit,
+  onDelete,
+  isDeleting = false,
 }) {
   const coverVariant = FALLBACK_COVERS[index % FALLBACK_COVERS.length];
   const normalizedTitle = title?.trim() || 'Untitled post';
   const normalizedPath = typeof to === 'string' ? to.trim() : '';
   const tagNames = normalizeTagNames(tags).slice(0, 2);
   const subtitle = [...tagNames, formatReadTime(readTime)].filter(Boolean).join(' • ');
+  const hasEditAction = typeof onEdit === 'function';
+  const hasDeleteAction = typeof onDelete === 'function';
+  const shouldShowActions = hasEditAction || hasDeleteAction;
+
+  const handleEditClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (isDeleting || !hasEditAction) {
+      return;
+    }
+
+    onEdit();
+  };
+
+  const handleDeleteClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (isDeleting || !hasDeleteAction) {
+      return;
+    }
+
+    onDelete();
+  };
 
   const cardContent = (
     <article className="flex items-center gap-3 rounded-xl border border-outline-variant/30 bg-surface-container-low/70 px-3 py-2.5">
@@ -80,10 +109,38 @@ export default function SearchResultCard({
           <p className="mt-1 truncate text-[11px] font-medium text-on-surface-variant">{subtitle}</p>
         ) : null}
       </div>
+
+      {shouldShowActions ? (
+        <div className="flex shrink-0 items-center gap-1">
+          {hasEditAction ? (
+            <button
+              type="button"
+              onClick={handleEditClick}
+              disabled={isDeleting}
+              className="rounded-md border border-outline-variant/30 p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={`Edit ${normalizedTitle}`}
+            >
+              <Edit size={14} />
+            </button>
+          ) : null}
+
+          {hasDeleteAction ? (
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              disabled={isDeleting}
+              className="rounded-md border border-outline-variant/30 p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={`Delete ${normalizedTitle}`}
+            >
+              <Trash2 size={14} />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 
-  if (!normalizedPath) {
+  if (!normalizedPath || shouldShowActions) {
     return cardContent;
   }
 

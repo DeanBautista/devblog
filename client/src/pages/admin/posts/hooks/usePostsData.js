@@ -178,6 +178,13 @@ export default function usePostsData() {
         try {
             await deleteAdminPost(parsedPostId);
 
+            setSearchResults((previousResults) =>
+                previousResults.filter((post) => {
+                    const existingPostId = Number.parseInt(post?.id, 10);
+                    return existingPostId !== parsedPostId;
+                })
+            );
+
             if (isDeletingLastItemOnPage && currentPage > 1) {
                 updatePageInUrl(currentPage - 1);
             } else {
