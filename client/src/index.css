@@ -460,3 +460,66 @@ body {
 .search-results-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, rgba(225, 224, 255, 0.98) 0%, rgba(128, 131, 255, 0.95) 100%);
 }
+
+/* Scoped syntax highlighting for fenced code blocks in DocumentRenderer. */
+pre > code.devblog-code-highlight.hljs {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--color-on-surface);
+  white-space: pre;
+}
+
+pre > code.devblog-code-highlight .hljs-comment,
+pre > code.devblog-code-highlight .hljs-quote {
+  color: #8794b9;
+  font-style: italic;
+}
+
+pre > code.devblog-code-highlight .hljs-keyword,
+pre > code.devblog-code-highlight .hljs-selector-tag,
+pre > code.devblog-code-highlight .hljs-literal,
+pre > code.devblog-code-highlight .hljs-name,
+pre > code.devblog-code-highlight .hljs-strong {
+  color: #9ca9ff;
+}
+
+pre > code.devblog-code-highlight .hljs-title,
+pre > code.devblog-code-highlight .hljs-title.class_,
+pre > code.devblog-code-highlight .hljs-type,
+pre > code.devblog-code-highlight .hljs-built_in,
+pre > code.devblog-code-highlight .hljs-attr {
+  color: #84d8f9;
+}
+
+pre > code.devblog-code-highlight .hljs-string,
+pre > code.devblog-code-highlight .hljs-regexp,
+pre > code.devblog-code-highlight .hljs-link,
+pre > code.devblog-code-highlight .hljs-addition,
+pre > code.devblog-code-highlight .hljs-bullet {
+  color: #8fdfc5;
+}
+
+pre > code.devblog-code-highlight .hljs-number,
+pre > code.devblog-code-highlight .hljs-symbol,
+pre > code.devblog-code-highlight .hljs-meta,
+pre > code.devblog-code-highlight .hljs-meta .hljs-keyword,
+pre > code.devblog-code-highlight .hljs-template-variable,
+pre > code.devblog-code-highlight .hljs-variable {
+  color: #f4c881;
+}
+
+pre > code.devblog-code-highlight .hljs-subst,
+pre > code.devblog-code-highlight .hljs-punctuation,
+pre > code.devblog-code-highlight .hljs-operator {
+  color: #dae2fd;
+}
+
+pre > code.devblog-code-highlight .hljs-deletion {
+  color: #f2a2a4;
+}
+
+pre > code.devblog-code-highlight .hljs-emphasis {
+  font-style: italic;
+}
