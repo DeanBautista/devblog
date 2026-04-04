@@ -4,7 +4,7 @@ import useAuthStore from '../stores/authStore';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:3000' : 'https://deandevblog.onrender.com');
+  (import.meta.env.DEV ? 'http://localhost:3000' : 'https://devblog-yt9y.vercel.app');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
