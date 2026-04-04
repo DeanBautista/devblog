@@ -100,6 +100,11 @@ export default function SideBar({ children, page }) {
     logout();
   };
 
+  const handlePageNavigation = (path) => {
+    setIsOpen(false);
+    navigate(path);
+  };
+
   return (
     <div className="">
       {/* Backdrop — mobile only */}
@@ -136,32 +141,32 @@ export default function SideBar({ children, page }) {
 
           <div className="flex flex-col gap-2">
             <span 
-                onClick={() => {navigate("/admin/dashboard")}}
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
+                onClick={() => {handlePageNavigation("/admin/dashboard")}}
+                className={`select-none flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "dashboard" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <LayoutDashboard size={20} className="text-white shrink-0" />
               Dashboard
             </span>
             <span 
-                onClick={() => {navigate("/admin/posts")}}
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
+                onClick={() => {handlePageNavigation("/admin/posts")}}
+                className={`select-none flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "posts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <FileText size={20} className="text-white shrink-0" />
               Posts
             </span>
             <span 
-                onClick={() => {navigate("/admin/newposts")}}
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
+                onClick={() => {handlePageNavigation("/admin/newposts")}}
+                className={`select-none flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "newposts" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <FilePlus size={20} className="text-white shrink-0" />
               New Posts
             </span>
             <span
-                onClick={() => {navigate("/admin/tags")}}
-                className={`flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
+                onClick={() => {handlePageNavigation("/admin/tags")}}
+                className={`select-none flex items-center gap-3 text-lg px-3 py-4 rounded-lg w-full cursor-pointer
                 ${page === "tags" ? "bg-indigo-500/10 border-r-4 border-r-primary text-on-primary-container" : "text-on-surface-variant"}`}
             >
               <Tag size={20} className="text-white shrink-0" />
