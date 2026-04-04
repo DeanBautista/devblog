@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { renderInlineMarkdown, stripHeadingSuffix } from "./postEditorHelper";
 import { INLINE_MARKDOWN_TOKEN_REGEX, previewHeadingClassByLevel, QUOTED_HEADING_REGEX } from "./postEditorConstants";
 import { parseDocumentBlocks } from "../../utils/document-transformer";
+import { highlightCode } from "../../lib/codeHighlighter";
 
 function DocumentHeading ({ level, children, className = "" }) {
     const headingLevel = Math.max(1, Math.min(6, level || 2));
@@ -48,6 +49,8 @@ export default function DocumentRenderer({ value }) {
                     }
 
                     if (block.type === "code") {
+                        const highlightedCode = highlightCode(block.code, block.language);
+
                         return (
                             <div
                                 key={`preview-code-${index}`}
@@ -60,7 +63,11 @@ export default function DocumentRenderer({ value }) {
                                 ) : null}
 
                                 <pre className="px-4 py-3 overflow-x-auto text-xs md:text-sm leading-6">
-                                    <code>{block.code}</code>
+                                    <code
+                                        className="hljs devblog-code-highlight"
+                                        data-language={highlightedCode.language}
+                                        dangerouslySetInnerHTML={{ __html: highlightedCode.html }}
+                                    />
                                 </pre>
                             </div>
                         );
