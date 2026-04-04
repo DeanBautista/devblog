@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import ColdStartNoticeToast from '../../components/public/ColdStartNoticeToast';
 import LatestPostsSection from '../../components/public/LatestPostsSection';
 import PublicFooter from '../../components/public/PublicFooter';
 import HomeHeroSection from '../../components/public/home/HomeHeroSection';
@@ -28,6 +29,8 @@ export default function Home() {
 
   return (
     <>
+      <ColdStartNoticeToast visible={loading} delayMs={5000} />
+
       <HomeHeroSection
         homeData={homeData}
         firstName={firstName}

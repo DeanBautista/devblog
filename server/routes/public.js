@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  warmUpPublicRoutes,
   getHomeData,
   getPublicTags,
   listPublicArticles,
@@ -10,6 +11,7 @@ const {
 
 const router = express.Router();
 
+router.get('/warmup', warmUpPublicRoutes);
 router.get('/home', getHomeData);
 router.get('/tags', getPublicTags);
 router.get('/articles', listPublicArticles);

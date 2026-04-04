@@ -74,8 +74,9 @@ export default function useArticleData() {
             limit: ARTICLES_PER_PAGE,
         });
         const cachedArchiveEntry = readArticleListCacheEntry(requestedCacheKey);
+        const hasCachedArchiveEntry = Boolean(cachedArchiveEntry);
 
-        if (cachedArchiveEntry) {
+        if (hasCachedArchiveEntry) {
             setArticles(cachedArchiveEntry.articles);
             setPagination(cachedArchiveEntry.pagination);
             setLoadError('');
@@ -92,14 +93,16 @@ export default function useArticleData() {
                 setSearchParams(nextParams);
             }
 
-            return () => {
-                shouldIgnore = true;
-            };
+        } else {
+            setIsLoading(true);
+            setLoadError('');
         }
 
         async function loadArticles() {
-            setIsLoading(true);
-            setLoadError('');
+            if (!hasCachedArchiveEntry) {
+                setIsLoading(true);
+                setLoadError('');
+            }
 
             try {
                 const response = await getPublicArticles({
@@ -151,18 +154,20 @@ export default function useArticleData() {
             } catch {
                 if (shouldIgnore) return;
 
-                setArticles([]);
-                setPagination({
-                    page: currentPage,
-                    limit: ARTICLES_PER_PAGE,
-                    total: 0,
-                    totalPages: 1,
-                    hasPrev: currentPage > 1,
-                    hasNext: false,
-                });
-                setLoadError('Unable to load articles right now.');
+                if (!hasCachedArchiveEntry) {
+                    setArticles([]);
+                    setPagination({
+                        page: currentPage,
+                        limit: ARTICLES_PER_PAGE,
+                        total: 0,
+                        totalPages: 1,
+                        hasPrev: currentPage > 1,
+                        hasNext: false,
+                    });
+                    setLoadError('Unable to load articles right now.');
+                }
             } finally {
-                if (!shouldIgnore) {
+                if (!shouldIgnore && !hasCachedArchiveEntry) {
                     setIsLoading(false);
                 }
             }

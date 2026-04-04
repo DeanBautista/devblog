@@ -17,10 +17,7 @@ function normalizeHomeData(responseData) {
 
 export default function useHomeData() {
   const [cacheSnapshot] = useState(() => readHomeCache());
-  const hasCachedData = Boolean(cacheSnapshot);
-  const hasCachedFeaturedArticles =
-    Array.isArray(cacheSnapshot?.data?.featuredArticles) &&
-    cacheSnapshot.data.featuredArticles.length > 0;
+  const hasCachedData = Boolean(cacheSnapshot) && isHomeCacheFresh(cacheSnapshot);
 
   const [homeData, setHomeData] = useState(() =>
     hasCachedData ? normalizeHomeData(cacheSnapshot.data) : EMPTY_HOME_DATA
@@ -31,16 +28,11 @@ export default function useHomeData() {
   useEffect(() => {
     let isMounted = true;
 
-    if (hasCachedData && isHomeCacheFresh(cacheSnapshot) && !hasCachedFeaturedArticles) {
-      setLoading(false);
-      setHasError(false);
-
-      return () => {
-        isMounted = false;
-      };
-    }
-
     async function loadHomeData() {
+      if (!hasCachedData && isMounted) {
+        setLoading(true);
+      }
+
       try {
         const response = await getPublicHomeData();
 
@@ -68,7 +60,7 @@ export default function useHomeData() {
           }
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && !hasCachedData) {
           setLoading(false);
         }
       }
@@ -79,7 +71,7 @@ export default function useHomeData() {
     return () => {
       isMounted = false;
     };
-  }, [cacheSnapshot, hasCachedData, hasCachedFeaturedArticles]);
+  }, [hasCachedData]);
 
   return {
     homeData,
