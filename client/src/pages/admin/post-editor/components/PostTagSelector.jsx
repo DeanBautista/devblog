@@ -6,8 +6,6 @@ export default function PostTagSelector({
     filteredTags,
     isTagsLoading,
     tagsLoadError,
-    tagSearchTerm,
-    setTagSearchTerm,
     onToggleTagSelection,
 }) {
     return (
@@ -39,16 +37,6 @@ export default function PostTagSelector({
                     ))}
                 </div>
             )}
-
-            <div className="mt-4">
-                <input
-                    type="text"
-                    value={tagSearchTerm}
-                    onChange={(event) => setTagSearchTerm(event.target.value)}
-                    placeholder="Search available tags..."
-                    className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-sm text-on-surface outline-none transition-colors focus:border-primary-fixed"
-                />
-            </div>
 
             {isTagsLoading && (
                 <p className="mt-3 text-xs text-on-surface-variant">Loading tags...</p>
@@ -83,7 +71,7 @@ export default function PostTagSelector({
                         })
                     ) : (
                         <span className="text-xs text-on-surface-variant">
-                            No tags match your search.
+                            No tags available.
                         </span>
                     )}
                 </div>

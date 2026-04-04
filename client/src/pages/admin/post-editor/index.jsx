@@ -59,8 +59,6 @@ export default function PostEditor() {
         validationErrors,
         isTagsLoading,
         tagsLoadError,
-        tagSearchTerm,
-        setTagSearchTerm,
         handleImageChange,
         handleDraft,
         handlePublish,
@@ -137,8 +135,6 @@ export default function PostEditor() {
                                     filteredTags={filteredTags}
                                     isTagsLoading={isTagsLoading}
                                     tagsLoadError={tagsLoadError}
-                                    tagSearchTerm={tagSearchTerm}
-                                    setTagSearchTerm={setTagSearchTerm}
                                     onToggleTagSelection={handleToggleTagSelection}
                                 />
 
@@ -214,3 +210,4 @@ export default function PostEditor() {
         </>
     );
 }
+

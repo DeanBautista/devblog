@@ -120,8 +120,7 @@ export default function usePostEditorForm() {
     const [validationErrors, setValidationErrors] = useState([]);
     const [availableTags, setAvailableTags] = useState([]);
     const [isTagsLoading, setIsTagsLoading] = useState(false);
-    const [tagsLoadError, setTagsLoadError] = useState("");
-    const [tagSearchTerm, setTagSearchTerm] = useState("");
+    const [tagsLoadError, setTagsLoadError] = useState("");
     const [isPostLoading, setIsPostLoading] = useState(false);
     const [editingPostId, setEditingPostId] = useState(null);
     const [publishDateValue, setPublishDateValue] = useState(null);
@@ -131,7 +130,6 @@ export default function usePostEditorForm() {
     const activeCoverPreview = coverImageUrl || null;
     const normalizedReadTimeMinutes = readTimeMinutes.trim();
     const readTimeDisplayLabel = `${normalizedReadTimeMinutes || "0"} min read`;
-    const normalizedTagSearchTerm = tagSearchTerm.trim().toLowerCase();
     const normalizedRouteSlug = useMemo(() => normalizeSlug(routeSlugParam), [routeSlugParam]);
     const normalizedRoutePostId = useMemo(() => {
         const parsedPostId = Number.parseInt(routePostIdParam, 10);
@@ -162,22 +160,7 @@ export default function usePostEditorForm() {
             };
         });
     }, [availableTags, selectedTagIds]);
-
-    const filteredTags = useMemo(() => {
-        if (!normalizedTagSearchTerm) {
-            return availableTags;
-        }
-
-        return availableTags.filter((tag) => {
-            const normalizedName = String(tag.name ?? "").toLowerCase();
-            const normalizedSlug = String(tag.slug ?? "").toLowerCase();
-
-            return (
-                normalizedName.includes(normalizedTagSearchTerm) ||
-                normalizedSlug.includes(normalizedTagSearchTerm)
-            );
-        });
-    }, [availableTags, normalizedTagSearchTerm]);
+    const filteredTags = useMemo(() => availableTags, [availableTags]);
 
     const publishDateDisplayLabel = useMemo(() => formatDateLabel(publishDateValue), [publishDateValue]);
     const lastEditedDisplayLabel = useMemo(
@@ -185,8 +168,7 @@ export default function usePostEditorForm() {
         [isEditMode, lastEditedAt]
     );
 
-    const clearTransientFormState = useCallback(() => {
-        setTagSearchTerm("");
+    const clearTransientFormState = useCallback(() => {
         setValidationErrors([]);
         setIsExcerptModalOpen(false);
         setIsValidationModalOpen(false);
@@ -809,7 +791,6 @@ export default function usePostEditorForm() {
         activeCoverPreview,
         normalizedReadTimeMinutes,
         readTimeDisplayLabel,
-        normalizedTagSearchTerm,
         selectedTags,
         filteredTags,
         publishDateDisplayLabel,
@@ -838,8 +819,6 @@ export default function usePostEditorForm() {
         availableTags,
         isTagsLoading,
         tagsLoadError,
-        tagSearchTerm,
-        setTagSearchTerm,
 
         // Handlers
         handleImageChange,
@@ -852,3 +831,4 @@ export default function usePostEditorForm() {
         handleCloseExcerptModal,
     };
 }
+
