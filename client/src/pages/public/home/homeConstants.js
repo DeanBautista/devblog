@@ -13,6 +13,7 @@ export const EMPTY_HOME_DATA = {
   stats: {
     articles: 0,
     views: 0,
+    likes: 0,
     tags: 0,
   },
   featuredArticles: [],

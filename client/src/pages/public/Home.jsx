@@ -23,7 +23,7 @@ export default function Home() {
   const statCards = [
     { label: 'Articles', value: formatMetricValue(homeData.stats?.articles), key: 'articles' },
     { label: 'Views',    value: formatMetricValue(homeData.stats?.views),    key: 'views'    },
-    { label: 'Tags',     value: formatMetricValue(homeData.stats?.tags),     key: 'tags'     },
+    { label: 'Likes',    value: formatMetricValue(homeData.stats?.likes),    key: 'likes'    },
   ];
 
   return (

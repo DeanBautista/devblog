@@ -329,7 +329,8 @@ async function getHomeData(req, res) {
       db.query(
         `SELECT
             COUNT(*) AS published_articles,
-            COALESCE(SUM(COALESCE(views, 0)), 0) AS total_views
+            COALESCE(SUM(COALESCE(views, 0)), 0) AS total_views,
+            COALESCE(SUM(COALESCE(likes, 0)), 0) AS total_likes
          FROM posts
          WHERE LOWER(status) = 'published'`
       ),
@@ -373,6 +374,7 @@ async function getHomeData(req, res) {
       stats: {
         articles: Number(stats.published_articles) || 0,
         views: Number(stats.total_views) || 0,
+        likes: Number(stats.total_likes) || 0,
         tags: totalTags,
       },
       featuredArticles: normalizeArticles(articleRowsWithTags),
