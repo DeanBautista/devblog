@@ -28,9 +28,10 @@ export default function PublicHeader() {
         <Link
           to="/"
           onClick={handleNavItemClick}
-          className="text-2xl font-semibold leading-none tracking-tight text-on-surface"
+          className="flex items-center gap-3 text-2xl font-semibold leading-none tracking-tight text-on-surface"
         >
-          Obsidian Architect
+          <img src="/favicon.svg" alt="DevCore CMS logo" className="h-9 w-9 shrink-0" />
+          <span>DevCore CMS</span>
         </Link>
 
         <nav className="absolute right-5 hidden items-center gap-10 md:flex">
@@ -45,12 +46,28 @@ export default function PublicHeader() {
               {item.label}
             </NavLink>
           ))}
+
+          <Link
+            to="/admin/login"
+            onClick={handleNavItemClick}
+            className="try-admin-header-cta inline-flex items-center justify-center rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em]"
+          >
+            Try Admin
+          </Link>
         </nav>
+
+        <Link
+          to="/admin/login"
+          onClick={handleNavItemClick}
+          className="try-admin-header-cta ml-auto inline-flex items-center justify-center rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] md:hidden"
+        >
+          Try Admin
+        </Link>
 
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="ml-auto rounded-lg border border-outline-variant/40 p-2 text-on-surface-variant transition-colors hover:text-on-surface md:hidden"
+          className="rounded-lg border border-outline-variant/40 p-2 text-on-surface-variant transition-colors hover:text-on-surface md:hidden"
           aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={isOpen}
         >
