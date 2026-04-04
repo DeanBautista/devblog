@@ -31,39 +31,12 @@ function AuthAwareRedirect() {
 
 function AppStartupLoader() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 text-on-surface">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(42rem 24rem at 76% 12%, rgba(73, 75, 214, 0.2), transparent 68%), linear-gradient(180deg, rgba(11, 19, 38, 1) 0%, rgba(7, 15, 33, 1) 100%)",
-        }}
-        aria-hidden="true"
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <span
+        className="inline-flex h-11 w-11 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary"
+        role="status"
+        aria-label="Loading"
       />
-
-      <div className="relative w-full max-w-sm rounded-2xl border border-outline-variant/35 bg-surface-container-low/80 p-6 shadow-[0_22px_45px_rgba(0,0,0,0.35)] backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <span
-            className="inline-flex h-9 w-9 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
-            aria-hidden="true"
-          />
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
-              Loading
-            </p>
-            <p className="text-base font-semibold text-on-surface">Preparing your content...</p>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-2" aria-hidden="true">
-          <div className="h-2.5 w-full animate-pulse rounded-full bg-surface-container-high" />
-          <div className="h-2.5 w-10/12 animate-pulse rounded-full bg-surface-container-high" />
-        </div>
-
-        <p className="mt-4 text-xs text-on-surface-variant" role="status" aria-live="polite">
-          Please wait while we initialize the app.
-        </p>
-      </div>
     </div>
   );
 }
