@@ -8,7 +8,6 @@ export default function Login() {
 
   const { login, loading, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
-  const [stayAuthenticated, setStayAuthenticated] = useState(false);
   const emailInputEl = useRef(null);
   const passwordInputEl = useRef(null);
 
@@ -18,6 +17,17 @@ export default function Login() {
 
   function onPasswordInputClick() {
     passwordInputEl.current.focus();
+  }
+
+  function handleFillDemoCredentials() {
+    if (!emailInputEl.current || !passwordInputEl.current) {
+      return;
+    }
+
+    emailInputEl.current.value = 'dean@email.com';
+    passwordInputEl.current.value = 'deanhandsome321';
+    clearError();
+    emailInputEl.current.focus();
   }
 
   async function handleLoginButtonClick() {
@@ -40,7 +50,7 @@ export default function Login() {
             sm:w-[420px] sm:rounded-3xl sm:shadow-2xl
             bg-[var(--color-surface-container)]
             flex flex-col items-center justify-center
-            px-8 py-12 gap-8
+            px-8 py-9 gap-6
             relative overflow-hidden
           "
         >
@@ -56,24 +66,12 @@ export default function Login() {
           {/* Logo Icon */}
           <div
             className="
-              w-14 h-14 rounded-2xl
-              bg-[var(--color-inverse-primary)]
+              w-20 h-20
               flex items-center justify-center
-              shadow-lg relative z-10
+              relative z-10
             "
-            style={{ boxShadow: "0 8px 32px rgba(73,75,214,0.45)" }}
           >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-[var(--color-primary)]"
-            >
-              <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M7 9l3 3-3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M13 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+            <img src="/favicon.svg" alt="DevCore CMS logo" className="h-20 w-20 shrink-0" />
           </div>
 
           {/* Heading */}
@@ -85,6 +83,14 @@ export default function Login() {
               Sign in to your CMS
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={handleFillDemoCredentials}
+            className="login-demo-fill-button relative z-10 w-full rounded-2xl px-5 py-3.5 text-sm font-black uppercase tracking-[0.16em]"
+          >
+            Fill Demo Credentials
+          </button>
 
           {/* ── Login Failed Banner ── */}
           {error && (
@@ -233,33 +239,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Stay Authenticated */}
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div
-                onClick={() => setStayAuthenticated(!stayAuthenticated)}
-                className={`
-                  w-5 h-5 rounded-[5px] border flex items-center justify-center
-                  transition-colors duration-150 shrink-0
-                  ${
-                    stayAuthenticated
-                      ? "bg-[var(--color-primary-container)] border-[var(--color-primary-container)]"
-                      : "bg-transparent border-[var(--color-outline-variant)] group-hover:border-[var(--color-outline)]"
-                  }
-                `}
-              >
-                {stayAuthenticated && (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-white">
-                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
-              <span
-                onClick={() => setStayAuthenticated(!stayAuthenticated)}
-                className="text-sm text-[var(--color-on-surface-variant)] select-none"
-              >
-                Stay authenticated
-              </span>
-            </label>
           </div>
 
           {/* Sign In Button */}

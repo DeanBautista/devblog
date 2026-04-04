@@ -119,9 +119,12 @@ export default function SideBar({ children, page }) {
         {/* top section */}
         <div>
           <div className="flex items-center justify-between py-4 mb-5">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-medium">BlogCMS</h1>
-              <span className="text-on-surface-variant">Admin Panel</span>
+            <div className="flex items-center gap-3">
+              <img src="/favicon.svg" alt="DevCore CMS logo" className="h-10 w-10 rounded-md shrink-0" />
+              <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-medium">DevCore CMS</h1>
+                <span className="text-on-surface-variant">Admin Panel</span>
+              </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}

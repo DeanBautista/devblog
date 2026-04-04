@@ -18,10 +18,10 @@ export default function PublicFooter() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-7 px-5 py-8 sm:flex-row sm:items-center sm:justify-between md:px-8">
         <div className="text-center sm:text-left">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-on-surface">
-            Obsidian Architect
+            DevCore CMS
           </p>
           <p className="mt-2 text-xs text-on-surface-variant">
-            © {currentYear} Obsidian Architect. Built with Tonal Precision.
+            © {currentYear} DevCore CMS. Built with Tonal Precision.
           </p>
         </div>
 
