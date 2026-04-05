@@ -81,7 +81,7 @@ export default function PostEditor() {
                 isPostLoading={isPostLoading}
             />
 
-            <main className="mt-10">
+            <main className="mt-4">
                 <div>
                     <div>
                         {editorView === EDITOR_VIEWS.WRITE && (

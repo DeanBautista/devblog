@@ -20,7 +20,7 @@ export default function PostEditorToolbar({
     };
 
     return (
-        <div className="w-full flex flex-col gap-4">
+        <div className="sticky top-0 z-40 w-full flex flex-col gap-4 bg-background py-4">
             <div className="w-full flex gap-2">
                 <button
                     type="button"

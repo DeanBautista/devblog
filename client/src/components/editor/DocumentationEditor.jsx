@@ -172,11 +172,24 @@ export default function DocumentationEditor({
 
         if (!result) return;
 
+        const savedScrollTop = textarea.scrollTop;
+        const savedScrollLeft = textarea.scrollLeft;
+
         onChangeValue(result.nextValue);
 
         requestAnimationFrame(() => {
-            textarea.focus();
-            textarea.setSelectionRange(result.nextSelectionStart, result.nextSelectionEnd);
+            const nextTextarea = textareaRef.current;
+            if (!nextTextarea) return;
+
+            try {
+                nextTextarea.focus({ preventScroll: true });
+            } catch {
+                nextTextarea.focus();
+            }
+
+            nextTextarea.setSelectionRange(result.nextSelectionStart, result.nextSelectionEnd);
+            nextTextarea.scrollTop = savedScrollTop;
+            nextTextarea.scrollLeft = savedScrollLeft;
         });
     };
 
