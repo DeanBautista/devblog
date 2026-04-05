@@ -12,7 +12,7 @@ function getInitials(name) {
 function HomeHeroSkeleton() {
   return (
     <section
-      className="relative overflow-hidden"
+      className="relative overflow-x-hidden"
       style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}
     >
       <div
@@ -42,7 +42,7 @@ function HomeHeroSkeleton() {
         </div>
 
         <div className="order-1 flex w-full max-w-md flex-col items-center lg:order-2 lg:max-w-lg">
-          <div className="relative h-44 w-44 rounded-full border-4 border-primary/50 bg-surface-container shadow-[0_0_35px_rgba(73,75,214,0.45)] sm:h-80 sm:w-80">
+          <div className="relative h-44 w-44 overflow-hidden rounded-full border-4 border-primary/50 bg-surface-container shadow-[0_0_35px_rgba(73,75,214,0.45)] sm:h-80 sm:w-80">
             <div className="h-full w-full animate-pulse rounded-full bg-surface-container-high" />
           </div>
 
@@ -79,7 +79,7 @@ export default function HomeHeroSection({ homeData, firstName, statCards, loadin
 
   return (
     <section
-      className="relative overflow-hidden"
+      className="relative overflow-x-hidden"
       style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}
     >
       <div
@@ -136,7 +136,7 @@ export default function HomeHeroSection({ homeData, firstName, statCards, loadin
 
         <div className="hero-reveal hero-reveal-delay-2 order-1 flex w-full max-w-md flex-col items-center lg:order-2 lg:max-w-lg">
           <div className="mx-auto w-fit">
-            <div className="hero-portrait relative h-44 w-44 rounded-full border-4 border-primary/50 bg-surface-container shadow-[0_0_24px_rgba(73,75,214,0.38)] sm:h-80 sm:w-80">
+            <div className="hero-portrait relative h-44 w-44 overflow-hidden rounded-full border-4 border-primary/50 bg-surface-container shadow-[0_0_24px_rgba(73,75,214,0.38)] sm:h-80 sm:w-80">
               {homeData.profile?.avatar_url ? (
                 <img
                   src={homeData.profile.avatar_url}

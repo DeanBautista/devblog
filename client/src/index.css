@@ -106,7 +106,6 @@ body {
   will-change: opacity, transform;
   transform: translateZ(0);
   backface-visibility: hidden;
-  contain: paint;
 }
 
 .hero-reveal-delay-1 {
@@ -137,7 +136,6 @@ body {
   will-change: opacity, transform;
   transform: translateZ(0);
   backface-visibility: hidden;
-  contain: paint;
 }
 
 @keyframes about-content-reveal {
