@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, FilePlus, Tag, User, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, FileText, FilePlus, Tag, LogOut, Menu, X } from "lucide-react";
 import useAuthStore from "../stores/authStore";
 import usePostEditorStore, { POST_EDITOR_DEFAULTS } from "../stores/postEditorStore";
 
@@ -177,17 +177,6 @@ export default function SideBar({ children, page }) {
 
         {/* bottom section */}
         <div className="border-t-[0.5px]">
-          <div className="flex flex-col gap-1 mt-7">
-            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-57.5">
-              <User size={20} className="text-white shrink-0" />
-              Profile
-            </span>
-            <span className="flex items-center gap-3 text-lg text-on-surface-variant px-3 py-4 rounded-lg min-w-57.5">
-              <Settings size={20} className="text-white shrink-0" />
-              Settings
-            </span>
-          </div>
-
           {/* Profile card */}
           <div className="flex items-center gap-3 pt-4 px-3 mt-7">
             <img src={user?.avatar_url} className="w-10 h-10 rounded-full object-cover shrink-0 bg-surface-variant" />
