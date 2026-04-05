@@ -68,28 +68,24 @@ body {
 @keyframes hero-content-reveal {
   0% {
     opacity: 0;
-    transform: translateY(30px);
-    filter: blur(6px);
+    transform: translate3d(0, 24px, 0);
   }
 
   100% {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes hero-portrait-reveal {
   0% {
     opacity: 0;
-    transform: translateY(-14px) scale(0.92);
-    filter: blur(6px);
+    transform: translate3d(0, -10px, 0) scale(0.96);
   }
 
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
@@ -107,35 +103,41 @@ body {
 .hero-reveal {
   opacity: 0;
   animation: hero-content-reveal 760ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  will-change: opacity, transform, filter;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: paint;
 }
 
 .hero-reveal-delay-1 {
-  animation-delay: 110ms;
+  animation-delay: 140ms;
 }
 
 .hero-reveal-delay-2 {
-  animation-delay: 190ms;
+  animation-delay: 260ms;
 }
 
 .hero-reveal-delay-3 {
-  animation-delay: 280ms;
+  animation-delay: 390ms;
 }
 
 .hero-reveal-delay-4 {
-  animation-delay: 370ms;
+  animation-delay: 520ms;
 }
 
 .hero-reveal-delay-5 {
-  animation-delay: 460ms;
+  animation-delay: 650ms;
 }
 
 .hero-portrait {
   opacity: 0;
   animation:
     hero-portrait-reveal 860ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms forwards,
-    hero-portrait-float 6.2s ease-in-out 1.05s infinite;
-  will-change: opacity, transform, filter;
+    hero-portrait-float 6.2s ease-in-out 1.9s infinite;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: paint;
 }
 
 @keyframes about-content-reveal {
@@ -182,7 +184,6 @@ body {
     opacity: 1;
     animation: none;
     transform: none;
-    filter: none;
   }
 }
 
@@ -229,7 +230,7 @@ body {
   }
 
   50% {
-    box-shadow: 0 0 0 1px rgba(225, 224, 255, 0.62), 0 18px 34px -18px rgba(225, 224, 255, 0.95);
+    box-shadow: 0 0 0 1px rgba(225, 224, 255, 0.48), 0 16px 31px -18px rgba(225, 224, 255, 0.88);
   }
 }
 
@@ -247,13 +248,11 @@ body {
   from {
     opacity: 0;
     transform: translateY(26px) scale(0.93);
-    filter: blur(6px);
   }
 
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: blur(0);
   }
 }
 
@@ -297,7 +296,7 @@ body {
     transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
     filter 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  animation: try-admin-cta-glow 3.2s ease-in-out infinite;
+  animation: try-admin-cta-glow 3.8s ease-in-out 900ms infinite;
 }
 
 .try-admin-header-cta::after {
@@ -306,7 +305,7 @@ body {
   inset: 0;
   width: 62%;
   background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.72) 52%, rgba(255, 255, 255, 0) 100%);
-  animation: cta-shimmer-sweep 3.2s ease-in-out infinite;
+  animation: cta-shimmer-sweep 3.8s ease-in-out 900ms infinite;
 }
 
 .try-admin-header-cta:hover {

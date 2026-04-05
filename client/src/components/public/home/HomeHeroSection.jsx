@@ -136,11 +136,14 @@ export default function HomeHeroSection({ homeData, firstName, statCards, loadin
 
         <div className="hero-reveal hero-reveal-delay-2 order-1 flex w-full max-w-md flex-col items-center lg:order-2 lg:max-w-lg">
           <div className="mx-auto w-fit">
-            <div className="hero-portrait relative h-44 w-44 rounded-full border-4 border-primary/50 bg-surface-container shadow-[0_0_35px_rgba(73,75,214,0.45)] sm:h-80 sm:w-80">
+            <div className="hero-portrait relative h-44 w-44 rounded-full border-4 border-primary/50 bg-surface-container shadow-[0_0_24px_rgba(73,75,214,0.38)] sm:h-80 sm:w-80">
               {homeData.profile?.avatar_url ? (
                 <img
                   src={homeData.profile.avatar_url}
                   alt={homeData.profile?.name || 'Profile'}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                   className="h-full w-full rounded-full object-cover"
                 />
               ) : (
@@ -156,7 +159,7 @@ export default function HomeHeroSection({ homeData, firstName, statCards, loadin
               <article
                 key={card.key}
                 className="hero-reveal rounded-xl border border-outline-variant/35 bg-surface-container-low/85 px-2.5 py-2 text-center sm:rounded-2xl sm:px-4 sm:py-4"
-                style={{ animationDelay: `${260 + index * 110}ms` }}
+                style={{ animationDelay: `${460 + index * 120}ms` }}
               >
                 <p className="text-lg font-semibold leading-none text-on-surface sm:text-xl">{card.value}</p>
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-on-surface-variant sm:mt-2 sm:tracking-[0.14em]">
