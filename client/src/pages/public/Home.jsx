@@ -36,7 +36,15 @@ export default function Home() {
       />
 
       {/* ── Section 2: Latest Posts ───────────────────────────────────────── */}
-      <section className="flex flex-col" style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}>
+      <section
+        className="flex flex-col"
+        style={{
+          scrollSnapAlign: 'start',
+          minHeight: '100vh',
+          contentVisibility: 'auto',
+          containIntrinsicSize: '100vh',
+        }}
+      >
         <div className="flex-1">
           <LatestPostsSection articles={homeData.featuredArticles} isLoading={loading} />
         </div>

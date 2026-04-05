@@ -56,18 +56,10 @@ export default function PublicHeader() {
           </Link>
         </nav>
 
-        <Link
-          to="/admin/login"
-          onClick={handleNavItemClick}
-          className="try-admin-header-cta ml-auto inline-flex items-center justify-center rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] md:hidden"
-        >
-          Try Admin
-        </Link>
-
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="ml-3 rounded-lg border border-outline-variant/40 p-2 text-on-surface-variant transition-colors hover:text-on-surface md:hidden"
+          className="ml-auto rounded-lg border border-outline-variant/40 p-2 text-on-surface-variant transition-colors hover:text-on-surface md:hidden"
           aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={isOpen}
         >
@@ -95,6 +87,14 @@ export default function PublicHeader() {
                 {item.label}
               </NavLink>
             ))}
+
+            <Link
+              to="/admin/login"
+              onClick={handleNavItemClick}
+              className="try-admin-header-cta mt-1 flex w-full items-center justify-center rounded-full px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.2em]"
+            >
+              Try Admin
+            </Link>
           </div>
         </nav>
       )}
