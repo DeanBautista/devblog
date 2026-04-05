@@ -329,7 +329,7 @@ export default function ArticleDetail() {
                 type="button"
                 onClick={handleLikeToggle}
                 disabled={isLikePending}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
+                className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
                   isLiked
                     ? 'border-primary/45 bg-primary/15 text-on-surface'
                     : 'border-outline-variant/35 bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
@@ -346,7 +346,7 @@ export default function ArticleDetail() {
               <button
                 type="button"
                 onClick={handleShareClick}
-                className="inline-flex items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-outline-variant/35 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container"
               >
                 {isShareCopied ? <Check size={15} aria-hidden="true" /> : <Share2 size={15} aria-hidden="true" />}
                 <span>Share</span>
@@ -358,7 +358,7 @@ export default function ArticleDetail() {
               onClick={handleNextPostClick}
               disabled={!hasNextPost}
               className={`group relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface-container-low px-5 py-4 text-left transition-colors sm:w-auto sm:min-w-[20rem] sm:max-w-88 ${
-                hasNextPost ? 'hover:border-primary/45 hover:bg-surface-container' : 'cursor-default opacity-80'
+                hasNextPost ? 'cursor-pointer hover:border-primary/45 hover:bg-surface-container' : 'cursor-not-allowed opacity-80'
               }`}
             >
               <div className="flex flex-col gap-1 min-w-0">
@@ -459,3 +459,4 @@ export default function ArticleDetail() {
     </section>
   );
 }
+

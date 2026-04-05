@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import useAuthStore from "../../stores/authStore";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function Login() {
 
@@ -265,6 +266,17 @@ export default function Login() {
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="relative z-10 w-full cursor-pointer rounded-full border border-outline-variant/45 bg-surface-container-low px-5 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+          >
+            <span className="inline-flex items-center justify-center gap-2">
+              <ArrowLeft size={16} aria-hidden="true" />
+              <span>Back to Home</span>
+            </span>
           </button>
         </div>
       </div>
