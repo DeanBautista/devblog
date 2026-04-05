@@ -12,7 +12,7 @@ export default function PostPreviewSection({
     editorContent,
 }) {
     return (
-        <article className="mt-10 flex flex-col">
+        <article className="mx-auto mt-10 flex w-full max-w-5xl flex-col px-5 md:px-8">
             {activeCoverPreview ? (
                 <div className="w-full h-56 md:h-80 lg:h-105 rounded-2xl overflow-hidden bg-on-tertiary">
                     <img src={activeCoverPreview} className="w-full h-full min-h-87.5 max-h-125 object-cover" alt="Cover preview" />
