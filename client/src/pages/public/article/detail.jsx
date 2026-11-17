@@ -229,7 +229,7 @@ export default function ArticleDetail() {
 
   const hasContent = typeof article.content === 'string' && article.content.trim().length > 0;
   const authorBio =
-    'Senior Systems Architect specializing in low-level obsidian frameworks and high-concurrency developer tooling. Obsessed with terminal aesthetics and minimalist infrastructure.';
+    'Full stack developer building React and Node.js applications with a focus on secure authentication, clean APIs, and well-structured codebases.';
 
   return (
     <section className="relative mx-auto w-full max-w-5xl px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14">
